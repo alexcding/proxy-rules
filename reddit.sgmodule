@@ -1,0 +1,12 @@
+#!name=Reddit去广告
+#!desc=过滤应用内推广，阻止NSFW提示（Surge Module）
+#!author=xream（转换 by ChatGPT）
+#!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/Reddit.png
+#!homepage=https://hub.kelee.one
+#!openUrl=https://apps.apple.com/app/id1064216828
+
+[Script]
+Reddit移除广告 = type=http-response,pattern=^https?:\/\/gql(-fed)?\.reddit\.com,requires-body=1,timeout=20,script-path=https://kelee.one/Resource/JavaScript/Reddit/Reddit_remove_ads.js,script-update-interval=0
+
+[MITM]
+hostname = %APPEND% gql.reddit.com, gql-fed.reddit.com
