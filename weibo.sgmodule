@@ -1,9 +1,5 @@
 #!name=微博去广告
 #!desc=过滤微博广告及去除各部分推广模块（Surge Module）
-#!author=RuCu6, zmqcherish（转换 by ChatGPT）
-#!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/Weibo.png
-#!homepage=https://hub.kelee.one
-#!openUrl=https://apps.apple.com/app/id350962117
 
 [Rule]
 DOMAIN-SUFFIX, uve.weibo.com, DIRECT
