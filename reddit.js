@@ -1,96 +1,111 @@
-// reddit.js
-// 用途：在 http-response 阶段清理微博返回 JSON 中的广告与 NSFW 弹窗标记
-// 规范：严格按 Surge 手册使用 $done({ body / headers / status }) 输出结果
+// Surge HTTP Response Body Modifier Script
+// This script walks through the JSON response and modifies NSFW settings and removes ads
 
-(function () {
-  // 若无 body，保持原样
-  if (!$response || typeof $response.body !== "string") {
-    return $done({});
-  }
-
-  const raw = $response.body.trim();
-  // 非 JSON（例如 HTML 或空响应）则不处理
-  if (!raw || (raw[0] !== "{" && raw[0] !== "[")) {
-    return $done({});
-  }
-
-  let data;
-  try {
-    data = JSON.parse(raw);
-  } catch {
-    // 解析失败则不修改
-    return $done({});
-  }
-
-  const cleaned = cleanWeiboData(data);
-
-  // 可选：若原响应未带 Content-Type，则补上（手册允许改 headers）
-  // 注意：某些头部（如 Content-Length）可能被忽略，交由 Surge 处理
-  // 参考：manual.nssurge.com/scripting/http-response.html
-  const headers = $response.headers || {};
-  const hasCT = Object.keys(headers).some(k => k.toLowerCase() === "content-type");
-  if (!hasCT) headers["Content-Type"] = "application/json; charset=utf-8";
-
-  // 输出：只要改了 body/headers/status 都必须通过 $done({...})
-  return $done({
-    body: JSON.stringify(cleaned),
-    // headers, // 如需强制写回响应头，解除本行注释
-    // status: 200 // 如需变更状态码，可设置
-  });
-
-  // —— 递归清理逻辑 —— //
-  function cleanWeiboData(input) {
-    return walk(input);
-
-    function walk(node) {
-      if (Array.isArray(node)) {
-        // 递归并过滤 undefined（表示已删除的元素）
-        return node.map(walk).filter(v => v !== undefined);
-      }
-      if (node && typeof node === "object") {
-        const obj = { ...node };
-
-        // 1) NSFW 标志位：关闭限制、允许展示
-        if (obj.isNsfw === true) obj.isNsfw = false;
-        if (obj.isNsfwMediaBlocked === true) obj.isNsfwMediaBlocked = false;
-        if (obj.isNsfwContentShown === false) obj.isNsfwContentShown = true;
-
-        // 2) 清空评论区广告数组
-        if (Array.isArray(obj.commentsPageAds)) obj.commentsPageAds = [];
-
-        // 3) 命中广告特征的节点整体删除（返回 undefined）
-        // 3.1 node.cells 含 AdMetadataCell 或 isAdPost=true
-        if (
-          obj.node &&
-          typeof obj.node === "object" &&
-          Array.isArray(obj.node.cells) &&
-          obj.node.cells.some(
-            c =>
-              (c && typeof c === "object" && c.__typename === "AdMetadataCell") ||
-              (c && c.isAdPost === true)
-          )
-        ) {
-          return undefined;
-        }
-        // 3.2 存在 node.adPayload
-        if (obj.node && typeof obj.node === "object" && typeof obj.node.adPayload === "object") {
-          return undefined;
-        }
-        // 3.3 自身就是广告类型
-        if (obj.__typename === "AdPost") {
-          return undefined;
-        }
-
-        // 4) 递归其余子键；若子值为 undefined，则删除该键
-        for (const k of Object.keys(obj)) {
-          const v = walk(obj[k]);
-          if (v === undefined) delete obj[k];
-          else obj[k] = v;
-        }
+function walkObject(obj) {
+    // Base case: if not an object or array, return as is
+    if (obj === null || obj === undefined) {
         return obj;
-      }
-      // 基本类型原样返回
-      return node;
     }
-  }
-})();
+    
+    // Handle arrays
+    if (Array.isArray(obj)) {
+        return obj
+            .map(item => walkObject(item))
+            .filter(item => item !== undefined); // Remove undefined items (deleted by ad filtering)
+    }
+    
+    // Handle objects
+    if (typeof obj === 'object') {
+        // Check if this object should be filtered out (ad-related content)
+        if (shouldFilterObject(obj)) {
+            return undefined; // This will be filtered out in array processing
+        }
+        
+        // Create a new object to avoid mutating the original
+        const newObj = {};
+        
+        for (const key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                // Handle NSFW-related fields
+                if (key === 'isNsfw' && obj[key] === true) {
+                    newObj[key] = false;
+                } else if (key === 'isNsfwMediaBlocked' && obj[key] === true) {
+                    newObj[key] = false;
+                } else if (key === 'isNsfwContentShown' && obj[key] === false) {
+                    newObj[key] = true;
+                } 
+                // Handle commentsPageAds - set to empty array
+                else if (key === 'commentsPageAds' && Array.isArray(obj[key])) {
+                    newObj[key] = [];
+                }
+                // Recursively process nested objects/arrays
+                else {
+                    const processedValue = walkObject(obj[key]);
+                    if (processedValue !== undefined) {
+                        newObj[key] = processedValue;
+                    }
+                }
+            }
+        }
+        
+        return newObj;
+    }
+    
+    // Return primitive values as is
+    return obj;
+}
+
+function shouldFilterObject(obj) {
+    // Filter objects with __typename === "AdPost"
+    if (obj.__typename === "AdPost") {
+        return true;
+    }
+    
+    // Filter objects where node.adPayload is an object
+    if (obj.node && 
+        typeof obj.node === 'object' && 
+        obj.node.adPayload && 
+        typeof obj.node.adPayload === 'object') {
+        return true;
+    }
+    
+    // Filter objects where node.cells contains AdMetadataCell or isAdPost
+    if (obj.node && 
+        typeof obj.node === 'object' && 
+        Array.isArray(obj.node.cells)) {
+        
+        const hasAdCell = obj.node.cells.some(cell => {
+            if (typeof cell === 'object' && cell !== null) {
+                return cell.__typename === "AdMetadataCell" || cell.isAdPost === true;
+            }
+            return false;
+        });
+        
+        if (hasAdCell) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+// Main Surge script handler
+let body = $response.body;
+
+try {
+    // Parse the JSON response
+    let jsonData = JSON.parse(body);
+    
+    // Process the data through our walk function
+    let modifiedData = walkObject(jsonData);
+    
+    // Convert back to JSON string
+    body = JSON.stringify(modifiedData);
+    
+} catch (error) {
+    // If parsing fails, log error and return original body
+    console.log("Error processing response: " + error.message);
+}
+
+// Return the modified response
+$done({ body });
