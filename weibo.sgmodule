@@ -1,0 +1,60 @@
+#!name=微博去广告
+#!desc=过滤微博广告及去除各部分推广模块（Surge Module）
+#!author=RuCu6, zmqcherish（转换 by ChatGPT）
+#!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/Weibo.png
+#!homepage=https://hub.kelee.one
+#!openUrl=https://apps.apple.com/app/id350962117
+
+[Rule]
+DOMAIN-SUFFIX, uve.weibo.com, DIRECT
+DOMAIN, huodong.weibo.cn, REJECT
+DOMAIN-SUFFIX, biz.weibo.com, REJECT
+
+[URL Rewrite]
+^https:\/\/api\.weibo\.cn\/2\/(?:ug\/checkin\/list|push\/daily|push\/info) - reject
+^https:\/\/api\.weibo\.cn\/2\/!\/live\/media_homelist\? - reject
+
+^https:\/\/api\.weibo\.cn\/2\/comments\/bullet_screens\? - reject
+^https:\/\/api\.weibo\.cn\/2\/photo\/info\? - reject
+^https:\/\/api\.weibo\.cn\/2\/statuses\/(?:container_positive|push_info) - reject
+^https:\/\/api\.weibo\.cn\/2\/vote\/get_vote_detail\? - reject
+^https:\/\/api\.weibo\.cn\/2\/!\/chaohua\/discovery\/home_bottom\/switch\? - reject
+^https:\/\/api\.weibo\.cn\/2\/!\/huati\/(?:discovery_home_bottom_getdotinfo|mobile_discovery_searchchange) - reject
+^https:\/\/api\.weibo\.cn\/2\/!\/wbox\/\w+\/(?:home_bottom_modal|interest_category) - reject
+
+^https:\/\/api\.weibo\.cn\/2\/search\/container_discover\? - reject
+^https:\/\/api\.weibo\.cn\/2\/hot\/hours_spotlight\? - reject
+^https:\/\/api\.weibo\.cn\/2\/video\/redpacket\? - reject
+^https:\/\/api\.weibo\.cn\/!\/(?:sug\/list\/finderchange|was\/finder\/searchbarchange)\? - reject
+
+^https:\/\/api\.weibo\.cn\/2\/video\/tiny_video_info_show\? - reject
+
+^https:\/\/bootrealtime\.uve\.weibo\.com\/v[23]\/ad\/realtime - reject
+^https:\/\/sdkapp\.uve\.weibo\.com\/interface\/sdk\/(?:get-lbs-cell-info\.php|sdkconfig\.php) - reject
+
+^https:\/\/card\.weibo\.com\/article\/m\/aj\/(?:reward|uvead) - reject
+^https:\/\/weibo\.com\/ttarticle\/x\/m\/aj\/(?:reward|uvead) - reject
+
+[Script]
+微博移除首页推广 = type=http-response,pattern=^https:\/\/api\.weibo\.cn\/2\/(?:checkin\/show|client\/publisher_list|push\/active),requires-body=1,timeout=20,script-path=https://kelee.one/Resource/JavaScript/Weibo/Weibo_remove_ads.js,script-update-interval=0
+微博移除首页顶部标签 = type=http-response,pattern=^https:\/\/api\.weibo\.cn\/2\/groups\/allgroups\/v2\?,requires-body=1,timeout=20,script-path=https://kelee.one/Resource/JavaScript/Weibo/Weibo_remove_ads.js,script-update-interval=0
+微博移除信息流广告 = type=http-response,pattern=^https:\/\/api\.weibo\.cn\/2\/(?:cardlist|page),requires-body=1,timeout=20,script-path=https://kelee.one/Resource/JavaScript/Weibo/Weibo_remove_ads.js,script-update-interval=0
+微博移除评论区广告 = type=http-response,pattern=^https:\/\/api\.weibo\.cn\/2\/comments\/build_comments\?,requires-body=1,timeout=20,script-path=https://kelee.one/Resource/JavaScript/Weibo/Weibo_remove_ads.js,script-update-interval=0
+微博移除个人微博详情页广告 = type=http-response,pattern=^https:\/\/api\.weibo\.cn\/2\/(?:container\/asyn|flowlist|flowpage),requires-body=1,timeout=20,script-path=https://kelee.one/Resource/JavaScript/Weibo/Weibo_remove_ads.js,script-update-interval=0
+微博移除关注弹窗 = type=http-response,pattern=^https:\/\/api\.weibo\.cn\/2\/friendships\/(?:create|destroy),requires-body=1,timeout=20,script-path=https://kelee.one/Resource/JavaScript/Weibo/Weibo_remove_ads.js,script-update-interval=0
+微博移除个人主页广告 = type=http-response,pattern=^https:\/\/api\.weibo\.cn\/2\/profile\/(?:container_timeline|dealatt|me|statuses\/tab|userinfo),requires-body=1,timeout=20,script-path=https://kelee.one/Resource/JavaScript/Weibo/Weibo_remove_ads.js,script-update-interval=0
+微博移除超话搜索页广告 = type=http-response,pattern=^https:\/\/api\.weibo\.cn\/2\/shproxy\/chaohua\/discovery\/searchactive\?,requires-body=1,timeout=20,script-path=https://kelee.one/Resource/JavaScript/Weibo/Weibo_remove_ads.js,script-update-interval=0
+微博移除信息流广告B = type=http-response,pattern=^https:\/\/api\.weibo\.cn\/2\/statuses\/(?:container_detail(_comment)?|container_timeline(?:_hot|_topic|_topicpage|_unread)?|repost_timeline|unread_hot_timeline),requires-body=1,timeout=20,script-path=https://kelee.one/Resource/JavaScript/Weibo/Weibo_remove_ads.js,script-update-interval=0
+微博移除微博详情页广告 = type=http-response,pattern=^https:\/\/api\.weibo\.cn\/2\/statuses\/(?:extend|show),requires-body=1,timeout=20,script-path=https://kelee.one/Resource/JavaScript/Weibo/Weibo_remove_ads.js,script-update-interval=0
+微博移除视频流广告 = type=http-response,pattern=^https:\/\/api\.weibo\.cn\/2\/video\/(?:full_screen_stream|tiny_stream_mid_detail|tiny_stream_video_list)\?,requires-body=1,timeout=20,script-path=https://kelee.one/Resource/JavaScript/Weibo/Weibo_remove_ads.js,script-update-interval=0
+微博移除超话顶部标签 = type=http-response,pattern=^https:\/\/api\.weibo\.cn\/2\/!\/huati\/discovery_home_bottom_channels\?,requires-body=1,timeout=20,script-path=https://kelee.one/Resource/JavaScript/Weibo/Weibo_remove_ads.js,script-update-interval=0
+微博移除消息页列表广告 = type=http-response,pattern=^https:\/\/api\.weibo\.cn\/2\/direct_messages\/user_list\?,requires-body=1,timeout=20,script-path=https://kelee.one/Resource/JavaScript/Weibo/Weibo_remove_ads.js,script-update-interval=0
+微博移除消息页提醒 = type=http-response,pattern=^https:\/\/api\.weibo\.cn\/2\/messageflow\/notice\?,requires-body=1,timeout=20,script-path=https://kelee.one/Resource/JavaScript/Weibo/Weibo_remove_ads.js,script-update-interval=0
+微博移除热门微博广告 = type=http-response,pattern=^https:\/\/api\.weibo\.cn\/2\/search\/(?:container_timeline|finder),requires-body=1,timeout=20,script-path=https://kelee.one/Resource/JavaScript/Weibo/Weibo_remove_ads.js,script-update-interval=0
+微博移除发现页搜索广告 = type=http-response,pattern=^https:\/\/api\.weibo\.cn\/2\/searchall\?,requires-body=1,timeout=20,script-path=https://kelee.one/Resource/JavaScript/Weibo/Weibo_remove_ads.js,script-update-interval=0
+微博移除开屏广告_preload = type=http-response,pattern=^https:\/\/bootpreload\.uve\.weibo\.com\/v[12]\/ad\/preload,requires-body=1,timeout=20,script-path=https://kelee.one/Resource/JavaScript/Weibo/Weibo_remove_ads.js,script-update-interval=0
+微博移除开屏广告_sdkad = type=http-response,pattern=^https:\/\/sdkapp\.uve\.weibo\.com\/interface\/sdk\/sdkad\.php,requires-body=1,timeout=20,script-path=https://kelee.one/Resource/JavaScript/Weibo/Weibo_remove_ads.js,script-update-interval=0
+微博移除开屏广告_wbapplua = type=http-response,pattern=^https:\/\/wbapp\.uve\.weibo\.com\/(?:preload\/get_ad|wbapplua\/wbpullad\.lua),requires-body=1,timeout=20,script-path=https://kelee.one/Resource/JavaScript/Weibo/Weibo_remove_ads.js,script-update-interval=0
+
+[MITM]
+hostname = %APPEND% *.weibo.cn, *.weibo.com, weibo.com
