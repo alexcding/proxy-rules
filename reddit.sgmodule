@@ -6,7 +6,7 @@
 #!openUrl=https://apps.apple.com/app/id1064216828
 
 [Script]
-Reddit移除广告 = type=http-response,pattern=^https?:\/\/gql(-fed)?\.reddit\.com,requires-body=1,timeout=20,script-path=https://kelee.one/Resource/JavaScript/Reddit/Reddit_remove_ads.js,script-update-interval=0
+Reddit移除广告 = type=http-response,pattern=^https?:\/\/gql(-fed)?\.reddit\.com,requires-body=1,timeout=20,script-path=https://raw.githubusercontent.com/alexcding/proxy-rules/refs/heads/main/reddit.js,script-update-interval=0
 
 [MITM]
 hostname = %APPEND% gql.reddit.com, gql-fed.reddit.com
