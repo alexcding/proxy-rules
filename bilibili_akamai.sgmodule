@@ -10,7 +10,7 @@ DOMAIN-SUFFIX,szbdyd.com,REJECT
 DOMAIN,upos-hz-mirrorakam.akamaized.net,DIRECT
 
 [URL Rewrite]
-^https?:\/\/upos-(?:sz|hz|bstar)-mirror[a-z0-9]+\.bilivideo\.com\/(upgcxcode\/.*) https://upos-hz-mirrorakam.akamaized.net/$1 header
+^https?:\/\/[a-z0-9-]+\.bilivideo\.com\/(upgcxcode\/.*) https://upos-hz-mirrorakam.akamaized.net/$1 header
 
 [MITM]
-hostname = %APPEND% upos-*.bilivideo.com
+hostname = %APPEND% *.bilivideo.com
