@@ -35,14 +35,18 @@ function replaceHostPreservingEscapeStyle(input) {
   return output;
 }
 
+console.log(`[bilibili-akamai-page] invoked url=${$request && $request.url} preferred=${PREFERRED_HOST}`);
 try {
   const body = $response.body;
   if (!body || typeof body !== "string") {
+    console.log(`[bilibili-akamai-page] empty body, skipping`);
     $done({});
   } else {
-    $done({ body: replaceHostPreservingEscapeStyle(body) });
+    const rewritten = replaceHostPreservingEscapeStyle(body);
+    console.log(`[bilibili-akamai-page] rewrote bytes=${rewritten.length} contains_akamai=${rewritten.indexOf(PREFERRED_HOST) >= 0}`);
+    $done({ body: rewritten });
   }
 } catch (error) {
-  console.log(`bilibili_akamai_page_rewrite failed: ${String(error)}`);
+  console.log(`[bilibili-akamai-page] failed: ${String(error)}`);
   $done({});
 }

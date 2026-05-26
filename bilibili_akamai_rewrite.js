@@ -108,16 +108,20 @@ function rewritePlayInfo(payload) {
   }
 }
 
+console.log(`[bilibili-akamai-api] invoked url=${$request && $request.url} preferred=${PREFERRED_HOST}`);
 try {
   const body = $response.body;
   if (!body || typeof body !== "string") {
+    console.log(`[bilibili-akamai-api] empty body, skipping`);
     $done({});
   } else {
     const payload = JSON.parse(body);
     rewritePlayInfo(payload);
-    $done({ body: JSON.stringify(payload) });
+    const out = JSON.stringify(payload);
+    console.log(`[bilibili-akamai-api] rewrote body bytes=${out.length} contains_akamai=${out.indexOf(PREFERRED_HOST) >= 0}`);
+    $done({ body: out });
   }
 } catch (error) {
-  console.log(`bilibili_akamai_rewrite failed: ${String(error)}`);
+  console.log(`[bilibili-akamai-api] failed: ${String(error)}`);
   $done({});
 }
