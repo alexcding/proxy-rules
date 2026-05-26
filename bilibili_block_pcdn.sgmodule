@@ -9,7 +9,7 @@ DOMAIN-KEYWORD,-302,REJECT
 DOMAIN-SUFFIX,szbdyd.com,REJECT
 
 [URL Rewrite]
-^https?:\/\/[a-z0-9-]+\.bilivideo\.com\/(upgcxcode\/.*) https://upos-sz-mirrorcosov.bilivideo.com/$1 header
+^https?:\/\/upos-(?:sz|hz|bstar)-mirrorcos[a-z0-9]*\.bilivideo\.com\/(upgcxcode\/.*) https://upos-sz-mirrorcosov.bilivideo.com/$1 header
 
 [MITM]
 hostname = %APPEND% *.bilivideo.com
