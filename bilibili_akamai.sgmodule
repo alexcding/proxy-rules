@@ -1,6 +1,6 @@
 #!name=Bilibili Akamai Preferred
 #!desc=Prefer Akamai for Bilibili playback while preserving original URLs as fallback. Requires Rewrite, Scripting, MITM, and trusted MITM cert on the watching device.
-#!arguments=PREFERRED_HOST=upos-hz-mirrorakam.akamaized.net
+#!arguments=PREFERRED_HOST:upos-hz-mirrorakam.akamaized.net
 
 [MITM]
 hostname = %APPEND% api.bilibili.com, www.bilibili.com, m.bilibili.com
