@@ -1,0 +1,13 @@
+#!name=Bilibili Akamai Preferred
+#!desc=Prefer Akamai for Bilibili playback while preserving original URLs as fallback. Requires Rewrite, Scripting, MITM, and trusted MITM cert on the watching device.
+#!arguments=PREFERRED_HOST=upos-hz-mirrorakam.akamaized.net
+
+[MITM]
+hostname = %APPEND% api.bilibili.com, www.bilibili.com, m.bilibili.com
+
+[Rule]
+DOMAIN,%PREFERRED_HOST%,DIRECT
+
+[Script]
+bilibili-akamai-api = type=http-response,pattern=^https://api\\.bilibili\\.com/(x/player/wbi/playurl|pgc/player/web/v2/playurl|x/player/playurl|pgc/player/web/playurl|pugv/player/web/playurl),requires-body=true,max-size=1048576,script-path=https://raw.githubusercontent.com/alexcding/proxy-rules/refs/heads/main/bilibili_akamai_rewrite.js,script-update-interval=86400,argument=preferred_host=%PREFERRED_HOST%
+bilibili-akamai-page = type=http-response,pattern=^https://(www|m)\\.bilibili\\.com/(video/|bangumi/play/|cheese/|movie/|anime/|documentary/|tv/|guochuang/|variety/|match/|v/),requires-body=true,max-size=3145728,script-path=https://raw.githubusercontent.com/alexcding/proxy-rules/refs/heads/main/bilibili_akamai_page_rewrite.js,script-update-interval=86400,argument=preferred_host=%PREFERRED_HOST%
