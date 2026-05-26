@@ -1,0 +1,9 @@
+#!name=Bilibili Block PCDN
+#!desc=Block Bilibili PCDN/P2P backends so the player falls back to the regular CDN URL Bilibili signed in playurl. Host-swap rewriting is not included because the upgcxcode upsig signature is bound to the CDN backend Bilibili chose at playurl time, so swapping to a different host returns 403.
+
+[Rule]
+DOMAIN-SUFFIX,mcdn.bilivideo.cn,REJECT
+DOMAIN-SUFFIX,mcdn.bilivideo.com,REJECT
+DOMAIN-SUFFIX,mcdn.bilivideo.net,REJECT
+DOMAIN-KEYWORD,-302,REJECT
+DOMAIN-SUFFIX,szbdyd.com,REJECT
