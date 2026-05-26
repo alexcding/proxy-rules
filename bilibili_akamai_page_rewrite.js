@@ -44,24 +44,44 @@ function detectPlayInfo(body) {
   return found.join("|");
 }
 
-console.log(`[bilibili-akamai-page] invoked url=${$request && $request.url} preferred=${PREFERRED_HOST}`);
+function record(diag) {
+  try {
+    if (typeof $persistentStore !== "undefined") {
+      $persistentStore.write(JSON.stringify(diag), "bilibili_akamai_page_diag");
+    }
+  } catch (e) {}
+}
+
+const reqUrl = ($request && $request.url) || "";
 try {
   const body = $response.body;
-  const headers = Object.assign({}, $response.headers || {});
   if (!body || typeof body !== "string") {
-    headers["X-Akamai-Rewrite"] = "skip-empty-body";
-    console.log(`[bilibili-akamai-page] empty body, skipping`);
-    $done({ headers });
+    record({ at: Date.now(), url: reqUrl, status: "skip-empty-body" });
+    $done({});
   } else {
     const stats = { escaped: 0, plain: 0 };
     const markers = detectPlayInfo(body);
+    const sampleMatches = [];
+    const sampleRe = /"(?:base_url|baseUrl|url|readyVideoUrl)"\s*:\s*"https?:[^"]{0,200}/g;
+    let m;
+    while ((m = sampleRe.exec(body)) && sampleMatches.length < 5) {
+      sampleMatches.push(m[0].slice(0, 200));
+    }
     const rewritten = replaceHostPreservingEscapeStyle(body, stats);
-    const containsAkamai = rewritten.indexOf(PREFERRED_HOST) >= 0;
-    headers["X-Akamai-Rewrite"] = `bytes=${rewritten.length};escaped=${stats.escaped};plain=${stats.plain};akamai=${containsAkamai};markers=${markers || "none"}`;
-    console.log(`[bilibili-akamai-page] ${headers["X-Akamai-Rewrite"]}`);
-    $done({ body: rewritten, headers });
+    record({
+      at: Date.now(),
+      url: reqUrl,
+      bodyLen: body.length,
+      outLen: rewritten.length,
+      escaped: stats.escaped,
+      plain: stats.plain,
+      akamai: rewritten.indexOf(PREFERRED_HOST) >= 0,
+      markers: markers || "none",
+      sampleMatches
+    });
+    $done({ body: rewritten });
   }
 } catch (error) {
-  console.log(`[bilibili-akamai-page] failed: ${String(error)}`);
-  $done({ headers: Object.assign({}, $response.headers || {}, { "X-Akamai-Rewrite": `error:${String(error)}` }) });
+  record({ at: Date.now(), url: reqUrl, error: String(error) });
+  $done({});
 }
