@@ -1,12 +1,5 @@
-#!name=Bilibili Block PCDN + Prefer COSOV
-#!desc=Block Bilibili PCDN/P2P backends and rewrite upgcxcode media requests to upos-sz-mirrorcosov.bilivideo.com (Tencent COS overseas mirror, low-latency from outside China). Note: the upgcxcode upsig signature is bound to the CDN backend Bilibili chose at playurl time, so swapping the host on URLs signed for a different backend may return 403; in that case the player falls back to backup URLs. Requires MITM trust on the watching device.
-
-[Rule]
-DOMAIN-SUFFIX,mcdn.bilivideo.cn,REJECT
-DOMAIN-SUFFIX,mcdn.bilivideo.com,REJECT
-DOMAIN-SUFFIX,mcdn.bilivideo.net,REJECT
-DOMAIN-KEYWORD,-302,REJECT
-DOMAIN-SUFFIX,szbdyd.com,REJECT
+#!name=Bilibili Prefer COSOV
+#!desc=Rewrite Bilibili upgcxcode media requests on Tencent COS mirrors to upos-sz-mirrorcosov.bilivideo.com (COS overseas mirror, low-latency from outside China). Only COS-family hosts are rewritten so the upsig signature stays within the same backend. Requires MITM trust on the watching device.
 
 [URL Rewrite]
 ^https?:\/\/upos-(?:sz|hz|bstar)-mirrorcos[a-z0-9]*\.bilivideo\.com\/(upgcxcode\/.*) https://upos-sz-mirrorcosov.bilivideo.com/$1 header
