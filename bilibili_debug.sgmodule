@@ -3,7 +3,7 @@
 
 [Script]
 # Log video media requests (raw-IP PCDN peers over HTTP; bilivideo CDN over HTTP/HTTPS) + tracker
-bili-log-media = type=http-request,pattern=^https?:\/\/(\d{1,3}(\.\d{1,3}){3}|[\w-]+\.bilivideo\.com|hw-edge[\w.-]*\.solseed\.cn)\/,requires-body=0,timeout=5,script-path=https://raw.githubusercontent.com/alexcding/proxy-rules/refs/heads/main/bilibili_log.js,script-update-interval=0
+bili-log-media = type=http-request,pattern=^https?:\/\/(\d+\.\d+\.\d+\.\d+|[\w-]+\.bilivideo\.com|hw-edge[\w.-]*\.solseed\.cn)\/,requires-body=0,timeout=5,script-path=https://raw.githubusercontent.com/alexcding/proxy-rules/refs/heads/main/bilibili_log.js,script-update-interval=0
 # Log the gRPC playurl response arrival (the event that gates media start)
 bili-log-playurl = type=http-response,pattern=^https:\/\/grpc\.biliapi\.net\/bilibili\.app\.(playerunite\.v1\.Player\/PlayViewUnite|playurl\.v1\.PlayURL\/PlayView)$,requires-body=0,timeout=5,script-path=https://raw.githubusercontent.com/alexcding/proxy-rules/refs/heads/main/bilibili_log.js,script-update-interval=0
 

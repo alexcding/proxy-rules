@@ -13,7 +13,7 @@ DEST-PORT,4480,REJECT
 # P2P tracker — coordinates peer delivery; reject so no peers are negotiated
 DOMAIN-SUFFIX,solseed.cn,REJECT
 # PCDN video media served from raw-IP peers (HTTP always; HTTPS only when the flow is MITM'd)
-URL-REGEX,^https?:\/\/\d{1,3}(\.\d{1,3}){3}(:\d+)?\/upgcxcode\/,REJECT
+URL-REGEX,^https?:\/\/\d+\.\d+\.\d+\.\d+(:\d+)?\/upgcxcode\/,REJECT
 # NOTE: do NOT block http://<ip>/resolve?host= — that is Bilibili HTTPDNS (resolves ALL app
 # hosts: api/app/grpc/passport/hdslb/CDN), not PCDN scheduling. Rejecting it forces slower
 # fallback DNS and adds startup latency without stopping PCDN video.
