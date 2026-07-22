@@ -12,8 +12,11 @@ DEST-PORT,8000,REJECT
 DEST-PORT,4480,REJECT
 # P2P tracker — coordinates peer delivery; reject so no peers are negotiated
 DOMAIN-SUFFIX,solseed.cn,REJECT
-# PCDN video media served from raw-IP peers (HTTP always; HTTPS only when the flow is MITM'd)
-URL-REGEX,^https?:\/\/\d+\.\d+\.\d+\.\d+(:\d+)?\/upgcxcode\/,REJECT
+# NOTE: do NOT REJECT raw-IP /upgcxcode/ media. Unlike the web player (where the userscript
+# rewrites playurl PCDN->CDN before the player sees it), the app's playurl is gRPC/protobuf and
+# can't be rewritten, so rejecting the media URL just makes the app retry-storm PCDN peers and
+# re-request playurl dozens of times before falling back to CDN — which is SLOWER, not faster.
+# We only kill the dead P2P peer connections (ports 8000/4480) that hang and deliver nothing.
 # NOTE: do NOT block http://<ip>/resolve?host= — that is Bilibili HTTPDNS (resolves ALL app
 # hosts: api/app/grpc/passport/hdslb/CDN), not PCDN scheduling. Rejecting it forces slower
 # fallback DNS and adds startup latency without stopping PCDN video.
