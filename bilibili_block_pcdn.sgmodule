@@ -1,5 +1,5 @@
 #!name=Bilibili Block PCDN + Prefer COSOV
-#!desc=Mobile-app CDN optimizer, adapted from the "Bilibili Accelerator" userscript (web-only). Two layers: (1) REJECT Bilibili PCDN/P2P backends (mcdn / szbdyd / mountaintoys / nexusedgeio / -302 redirect hosts) so the app cannot fall back to slow peer nodes and is forced onto the regular CDN; (2) rewrite upgcxcode media requests on Tencent COS mirror hosts to upos-sz-mirrorcosov.bilivideo.com (COS overseas mirror, low-latency from outside China). Only COS-family hosts are rewritten so the upsig signature stays within the same backend and does not 403. Live TTFB probing from the userscript is intentionally omitted — it is not practical in a proxy module, and the app's playurl API is largely protobuf/gRPC, so JSON host-rewriting is not reliable on mobile. Requires MITM trust on the watching device.
+#!desc=Mobile-app CDN optimizer, adapted from the "Bilibili Accelerator" userscript (web-only). Three layers: (1) REJECT Bilibili PCDN/P2P backends (mcdn / szbdyd / mountaintoys / nexusedgeio / -302 redirect hosts) so the app cannot fall back to slow peer nodes; (2) URL Rewrite of upgcxcode media requests on Tencent COS mirror hosts to upos-sz-mirrorcosov.bilivideo.com (COS overseas mirror, low-latency from outside China); (3) a response script (bilibili.js) that rewrites JSON playurl responses — upgrading COS hosts to COSOV inside url/backup lists and stripping PCDN entries. Only COS-family hosts are rewritten so the upsig signature stays within the same backend and does not 403. Layer 3 only affects JSON playurl endpoints; the newer gRPC/protobuf PlayView API is binary and cannot be rewritten. Live TTFB probing from the userscript is intentionally omitted (not practical in a proxy). Requires MITM trust on the watching device.
 
 [Rule]
 # PCDN / P2P backends — reject so the player falls back to Bilibili's signed CDN URL
@@ -15,5 +15,10 @@ DOMAIN-KEYWORD,-302,REJECT
 # Prefer Tencent COS overseas mirror for media segments (same backend, upsig stays valid)
 ^https?:\/\/upos-(?:sz|hz|bstar)-mirrorcos[a-z0-9]*\.bilivideo\.com\/(upgcxcode\/.*) https://upos-sz-mirrorcosov.bilivideo.com/$1 header
 
+[Script]
+# Rewrite playurl JSON: upgrade COS hosts to COSOV inside url/backup lists, strip PCDN entries.
+# Only affects JSON playurl endpoints; gRPC/protobuf PlayView is untouched.
+Bilibili优选CDN = type=http-response,pattern=^https?:\/\/[\w.-]+\.bilibili\.com\/.*playurl,requires-body=1,timeout=20,script-path=https://raw.githubusercontent.com/alexcding/proxy-rules/refs/heads/main/bilibili.js,script-update-interval=0
+
 [MITM]
-hostname = %APPEND% *.bilivideo.com
+hostname = %APPEND% *.bilivideo.com, *.bilibili.com
