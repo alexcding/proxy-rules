@@ -1,7 +1,18 @@
-#!name=Bilibili Prefer COSOV
-#!desc=Rewrite Bilibili upgcxcode media requests on Tencent COS mirrors to upos-sz-mirrorcosov.bilivideo.com (COS overseas mirror, low-latency from outside China). Only COS-family hosts are rewritten so the upsig signature stays within the same backend. Requires MITM trust on the watching device.
+#!name=Bilibili Block PCDN + Prefer COSOV
+#!desc=Mobile-app CDN optimizer, adapted from the "Bilibili Accelerator" userscript (web-only). Two layers: (1) REJECT Bilibili PCDN/P2P backends (mcdn / szbdyd / mountaintoys / nexusedgeio / -302 redirect hosts) so the app cannot fall back to slow peer nodes and is forced onto the regular CDN; (2) rewrite upgcxcode media requests on Tencent COS mirror hosts to upos-sz-mirrorcosov.bilivideo.com (COS overseas mirror, low-latency from outside China). Only COS-family hosts are rewritten so the upsig signature stays within the same backend and does not 403. Live TTFB probing from the userscript is intentionally omitted — it is not practical in a proxy module, and the app's playurl API is largely protobuf/gRPC, so JSON host-rewriting is not reliable on mobile. Requires MITM trust on the watching device.
+
+[Rule]
+# PCDN / P2P backends — reject so the player falls back to Bilibili's signed CDN URL
+DOMAIN-SUFFIX,mcdn.bilivideo.cn,REJECT
+DOMAIN-SUFFIX,mcdn.bilivideo.com,REJECT
+DOMAIN-SUFFIX,mcdn.bilivideo.net,REJECT
+DOMAIN-SUFFIX,szbdyd.com,REJECT
+DOMAIN-SUFFIX,mountaintoys.cn,REJECT
+DOMAIN-SUFFIX,nexusedgeio.com,REJECT
+DOMAIN-KEYWORD,-302,REJECT
 
 [URL Rewrite]
+# Prefer Tencent COS overseas mirror for media segments (same backend, upsig stays valid)
 ^https?:\/\/upos-(?:sz|hz|bstar)-mirrorcos[a-z0-9]*\.bilivideo\.com\/(upgcxcode\/.*) https://upos-sz-mirrorcosov.bilivideo.com/$1 header
 
 [MITM]
