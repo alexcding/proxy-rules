@@ -1,12 +1,14 @@
 #!name=Bilibili Block PCDN/P2P
-#!desc=Force the Bilibili mobile app off PCDN/P2P delivery and onto the regular CDN. Rules are based on a real Surge capture of the app: playurl is gRPC/protobuf (grpc.biliapi.net/PlayViewUnite) so response-body rewriting is not possible; the app pulls media from P2P peers on raw IPs (http://<ip>/upgcxcode/...) coordinated by a tracker (solseed.cn) and scheduled via raw-IP /resolve?host= lookups. Rejecting those makes the player fall back to the signed CDN host (upos-*.bilivideo.com). The raw-IP URL-REGEX rules match both http:// and https:// — but a URL-REGEX can only see the path of an HTTP request or an HTTPS request that is being MITM'd, so raw-IP TLS peers that present no bilivideo SNI are not caught by these rules (they need known CIDR blocks instead). An optional URL Rewrite prefers the COS overseas mirror when the CDN host is COS-family (same backend, upsig stays valid); it is a no-op for other mirror families such as mirrorbd.
+#!desc=Force the Bilibili mobile app off PCDN/P2P delivery and onto the regular CDN. Rules are based on a real Surge capture of the app: playurl is gRPC/protobuf (grpc.biliapi.net/PlayViewUnite) so response-body rewriting is not possible; the app pulls video from P2P peers on raw IPs (http://<ip>/upgcxcode/...) coordinated by a tracker (solseed.cn). Rejecting those makes the player fall back to the signed CDN host (upos-*.bilivideo.com). The raw-IP upgcxcode rule matches http:// and https:// — but a URL-REGEX can only see the path of an HTTP request or an HTTPS request that is being MITM'd, so raw-IP TLS peers that present no bilivideo SNI are not caught (they would need known CIDR blocks). Note: http://<ip>/resolve?host= is Bilibili HTTPDNS, not PCDN, and is deliberately NOT blocked. An optional URL Rewrite prefers the COS overseas mirror when the CDN host is COS-family (same backend, upsig stays valid); it is a no-op for other mirror families such as mirrorbd.
 
 [Rule]
 # P2P tracker — coordinates peer delivery; reject so no peers are negotiated
 DOMAIN-SUFFIX,solseed.cn,REJECT
-# PCDN media + scheduler served from raw IPs (HTTP always; HTTPS only when the flow is MITM'd)
+# PCDN video media served from raw-IP peers (HTTP always; HTTPS only when the flow is MITM'd)
 URL-REGEX,^https?:\/\/\d{1,3}(\.\d{1,3}){3}(:\d+)?\/upgcxcode\/,REJECT
-URL-REGEX,^https?:\/\/\d{1,3}(\.\d{1,3}){3}(:\d+)?\/[^\s?]*resolve\?host=,REJECT
+# NOTE: do NOT block http://<ip>/resolve?host= — that is Bilibili HTTPDNS (resolves ALL app
+# hosts: api/app/grpc/passport/hdslb/CDN), not PCDN scheduling. Rejecting it forces slower
+# fallback DNS and adds startup latency without stopping PCDN video.
 # Known PCDN/P2P backend domains (other regions / client versions)
 DOMAIN-SUFFIX,mcdn.bilivideo.cn,REJECT
 DOMAIN-SUFFIX,mcdn.bilivideo.com,REJECT
