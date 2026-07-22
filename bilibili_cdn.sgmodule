@@ -1,0 +1,8 @@
+#!name=Bilibili Force CDN (playurl rewrite)
+#!desc=Rewrites the Bilibili app's gRPC/protobuf playurl (PlayViewUnite/PlayView) so every stream URL points at the regular CDN (upos-*.bilivideo.com) instead of raw-IP PCDN/P2P peers — the app-side equivalent of the web accelerator's playurl rewrite, so the player never tries P2P and starts fast. Fail-safe: any parse/inflate error passes the response through unchanged. Requires MITM on grpc.biliapi.net + app.bilibili.com.
+
+[Script]
+bilibili.forcecdn = type=http-response,pattern=^https:\/\/(?:grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.(?:app\.playurl\.v1\.PlayURL\/PlayView|app\.playerunite\.v1\.Player\/PlayViewUnite|pgc\.gateway\.player\.v2\.PlayURL\/PlayView)$,requires-body=true,binary-body-mode=true,timeout=15,script-path=https://raw.githubusercontent.com/alexcding/proxy-rules/refs/heads/main/bilibili_cdn.js,script-update-interval=0
+
+[MITM]
+hostname = %APPEND% grpc.biliapi.net, app.bilibili.com
