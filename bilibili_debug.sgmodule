@@ -1,5 +1,5 @@
 #!name=Bilibili Debug Log
-#!desc=TEMPORARY diagnostic logger — enable while investigating video-start latency, then disable. Logs to the Surge log: (1) when the gRPC playurl (PlayViewUnite / PlayView) response arrives, and (2) each video media request (CDN host vs raw-IP PCDN peer) and the P2P tracker. Read the log, find PLAYURL-RESP, then the first CDN-MEDIA/PCDN-IP line — the timestamp gap is the time-to-first-media after playurl resolves. Pass-through only; modifies nothing. MITMs grpc.biliapi.net + *.bilivideo.com (raw-IP media is plain HTTP, no MITM needed).
+#!desc=TEMPORARY diagnostic logger for video-start latency — enable, then disable when done. Logs the gRPC playurl response arrival and each media request (CDN vs raw-IP PCDN peer) to the Surge log; the timestamp gap is time-to-first-media. Pass-through only. Requires MITM.
 
 [Script]
 # Log video media requests (raw-IP PCDN peers over HTTP; bilivideo CDN over HTTP/HTTPS) + tracker
