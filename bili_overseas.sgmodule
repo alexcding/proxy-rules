@@ -1,5 +1,5 @@
 #!name=Bilibili Overseas
-#!desc=Makes the Bilibili app start videos fast from outside China by rewriting the gRPC/protobuf playurl (PlayViewUnite/PlayView) so every stream URL points at the regular CDN (upos-*.bilivideo.com) instead of PCDN/P2P peers — the app-side equivalent of the web accelerator. Fail-safe: any parse/inflate error passes the response through unchanged. NOTE: deliberately does NOT reject the P2P peer ports — with the playurl already rewritten to CDN, the peer connections are harmless background noise, and rejecting them makes the app retry the whole playurl with backoff (much slower). Requires MITM on grpc.biliapi.net + app.bilibili.com.
+#!desc=Accelerates Bilibili streaming for overseas users: rewrites the app's playurl so video loads from the CDN instead of China PCDN/P2P peers. Requires MITM on grpc.biliapi.net + app.bilibili.com.
 
 [Script]
 # Rewrite playurl PCDN/P2P stream URLs -> CDN (upos-*.bilivideo.com). Fail-safe passthrough on error.
