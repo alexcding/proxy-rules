@@ -1,9 +1,19 @@
 #!name=Bilibili Overseas
 #!desc=Accelerate Bilibili streaming for overseas users.
 
+[General]
+# Treat Bilibili PCDN/P2P ports as HTTP so their media requests can be redirected (not just tunneled).
+force-http-engine-hosts = %APPEND% *:4480, *:4483, *:8000, *:8082, *:9102
+
+[URL Rewrite]
+# Redirect any non-CDN upgcxcode media (raw-IP P2P peers, mcdn/szbdyd/yirujs, regional cn-*) to the
+# overseas CDN mirror, reusing the upsig the PCDN URL already carries. The request succeeds via CDN,
+# so the app never falls into P2P retry/backoff. upos-* CDN hosts are excluded so there is no loop.
+^https?:\/\/(?!upos-)[\w.\-]+(?::\d+)?\/(?:v1\/resource\/)?(upgcxcode\/\S+)$ https://upos-sz-mirrorcosov.bilivideo.com/$1 302
+
 [Script]
-# Rewrite playurl PCDN/P2P stream URLs -> CDN (upos-*.bilivideo.com). Fail-safe passthrough on error.
+# Also rewrite the gRPC playurl so the app's primary source is CDN (fewer peer attempts). Fail-safe.
 bilibili.forcecdn = type=http-response,pattern=^https:\/\/(?:grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.(?:app\.playurl\.v1\.PlayURL\/PlayView|app\.playerunite\.v1\.Player\/PlayViewUnite|pgc\.gateway\.player\.v2\.PlayURL\/PlayView)$,requires-body=true,binary-body-mode=true,timeout=15,script-path=https://raw.githubusercontent.com/alexcding/proxy-rules/refs/heads/main/bili_overseas.js,script-update-interval=0
 
 [MITM]
-hostname = %APPEND% grpc.biliapi.net, app.bilibili.com
+hostname = %APPEND% grpc.biliapi.net, app.bilibili.com, *.mcdn.bilivideo.cn, *.szbdyd.com, *.mountaintoys.cn, *.yirujs.com
