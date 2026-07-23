@@ -1,8 +1,0 @@
-#!name=Bilibili CDN Only
-#!desc=Force Bilibili playback onto CDN. Rewrites the gRPC/protobuf playurl (UGC + PGC) so PCDN/P2P/MCDN media becomes CDN — raw-IP / non-default-port / os=mcdn / szbdyd / mountaintoys / nexusedgeio / yirujs / mirror14b -> upos-sz-mirrorcosov; *.mcdn.bilivideo.* -> Bilibili's own relay proxy-tf-all-ws; szbdyd -> its xy_usource host; healthy CDN and live streams left alone. Rewrite logic ported from realzza/bilibili-accelerator. Fail-safe (any error passes through). Requires MITM on grpc.biliapi.net + app.bilibili.com. Use INSTEAD of bili_overseas (don't run both).
-
-[Script]
-bilibili.cdnonly = type=http-response,pattern=^https:\/\/(?:grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.(?:app\.playurl\.v1\.PlayURL\/PlayView|app\.playerunite\.v1\.Player\/PlayViewUnite|pgc\.gateway\.player\.v2\.PlayURL\/PlayView)$,requires-body=true,binary-body-mode=true,timeout=15,script-path=https://raw.githubusercontent.com/alexcding/proxy-rules/refs/heads/main/bili_cdn_only.js,script-update-interval=0
-
-[MITM]
-hostname = %APPEND% grpc.biliapi.net, app.bilibili.com
