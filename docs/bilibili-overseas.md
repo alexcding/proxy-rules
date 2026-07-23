@@ -52,7 +52,8 @@ Module: [`bili_overseas.sgmodule`](../bili_overseas.sgmodule) (+ [`bili_overseas
 | `DEST-PORT,8000/4480,REJECT` | 41s, worse | Instantly rejecting peers makes the app treat the source as failed → **retries whole playurl with backoff** (0/9/20/40s). |
 | Let peers hang (no block) | 35–67s | Same retry-backoff, driven by the 10s peer-hang timeout. |
 | **Protobuf playurl rewrite** (`bili_overseas.js`) | Works but fragile | Parses gRPC/gzip PlayViewUnite, replaces every non-`upos` stream URL with the CDN sibling, re-frames uncompressed (flag=0). **Must use pako for inflate** — tiny-inflate threw "Data error" on ~1/3 of real responses → fail-safe passthrough → PCDN leak → retries. Even reliable, it can't stop the app from *trying* peers it discovers. |
-| **Redirect PCDN media → CDN** (current) | Expected best | The community-proven method. `force-http-engine` on PCDN ports + `[URL Rewrite] 302` to `upos-sz-mirrorcosov`. The peer request **succeeds via CDN**, so the app never retries. |
+| Redirect PCDN media → CDN with **`302`** | Failed | App **ignores 302 for media segments** (treats source as failed → playurl retry storm, still ~42s). Also HTTPS-to-raw-IP PCDN can't be rewritten (no SNI to MITM). |
+| Redirect PCDN media → CDN with **`header`** (current, works) | ✅ Good | Same rewrite but **transparent** internal mode: Surge fetches the CDN and hands the app the actual bytes (no redirect to ignore). This is what finally felt fast. `force-http-engine` on PCDN ports + `[URL Rewrite] … header` to `upos-sz-mirrorcosov`, reusing the `e=<upsig>`. |
 
 ### Key insight
 **Redirect, don't reject.** Every failure mode (reject / hang / leak) makes a media request
@@ -68,9 +69,10 @@ Secondary: the CDN itself is NOT the bottleneck — once used, `upos-sz-estgoss`
 Three layers in one module:
 1. `[General] force-http-engine-hosts = %APPEND% *:4480, *:4483, *:8000, *:8082, *:9102`
    — makes raw-IP:port PCDN media parse as HTTP so it can be rewritten.
-2. `[URL Rewrite]` 302 redirect:
+2. `[URL Rewrite]` **`header`** (transparent) rewrite:
    `^https?:\/\/(?!upos-)[\w.\-]+(?::\d+)?\/(?:v1\/resource\/)?(upgcxcode\/\S+)$`
-   → `https://upos-sz-mirrorcosov.bilivideo.com/$1` — reuses the `e=<upsig>` in the PCDN URL.
+   → `https://upos-sz-mirrorcosov.bilivideo.com/$1 header` — reuses the `e=<upsig>` in the PCDN URL.
+   MUST be `header` not `302` (the app ignores 302 for media segments).
 3. `[Script]` protobuf playurl rewrite (`bili_overseas.js`, pako-based, fail-safe) — cleans the
    playurl so the app's primary source is CDN (fewer peer attempts).
 - `[MITM]`: `grpc.biliapi.net, app.bilibili.com, *.mcdn.bilivideo.cn, *.szbdyd.com, *.mountaintoys.cn, *.yirujs.com`.
