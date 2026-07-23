@@ -120,6 +120,21 @@ Three layers in one module:
   Robust answer for paid content: a region-unlock/roaming client (biliRoaming / 哔哩漫游), not proxy rules.
 - **Net:** UGC fixed via routing; PGC is an accepted limitation (or use biliRoaming).
 
+## 6c. `bili_cdn_only` module (added 2026-07-22, commit 83779b1)
+
+A smarter playurl rewriter than `bili_overseas.js`, porting realzza/bilibili-accelerator's
+`core/rewrite.js` classification. Same protobuf+pako machinery, but the URL policy is:
+- PCDN (bare IP / **non-default port** / `os=mcdn` / szbdyd / mountaintoys / nexusedgeio /
+  ahdohpiechei / **yirujs** / xy-mcdn / `upos-*302*` / **mirror14b**) → `upos-sz-mirrorcosov`,
+  stripping the `/v1/resource` path prefix so the CDN path is valid.
+- MCDN (`*.mcdn.bilivideo.*`) → **Bilibili's own relay** `proxy-tf-all-ws.bilivideo.com/?url=…`.
+- szbdyd scheduler → the `xy_usource` host embedded in its query.
+- Healthy CDN + live (`/live-bvc/`) left alone.
+Verified against the real 6:09 playurl body: 18 PCDN/P2P URLs → CDN, healthy mirrors preserved,
+0 residual PCDN, valid re-parse. Use INSTEAD of `bili_overseas` (don't run both — they'd double-process
+the same PlayView response). Target host `upos-sz-mirrorcosov` is a hardcoded bet; make it an argument
+or add TTFB probing if it underperforms in a region.
+
 ## 7. Ideas to improve next time
 
 - **Confirm the redirect actually fixes cold start** with a fresh capture; if `force-http-engine`
