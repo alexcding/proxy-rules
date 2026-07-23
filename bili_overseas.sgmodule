@@ -1,5 +1,5 @@
 #!name=Bilibili Overseas
-#!desc=Accelerates Bilibili streaming for overseas users: rewrites the app's playurl so video loads from the CDN instead of China PCDN/P2P peers. Requires MITM on grpc.biliapi.net + app.bilibili.com.
+#!desc=Accelerate Bilibili streaming for overseas users.
 
 [Script]
 # Rewrite playurl PCDN/P2P stream URLs -> CDN (upos-*.bilivideo.com). Fail-safe passthrough on error.
