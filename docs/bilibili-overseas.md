@@ -120,7 +120,14 @@ Three layers in one module:
   Robust answer for paid content: a region-unlock/roaming client (biliRoaming / 哔哩漫游), not proxy rules.
 - **Net:** UGC fixed via routing; PGC is an accepted limitation (or use biliRoaming).
 
-## 6c. `bili_cdn_only` module (added 2026-07-22, commit 83779b1)
+## 6c. `bili_cdn_only` module — TRIED AND REMOVED (added 83779b1, removed 71dd049)
+
+Outcome: **removed.** It rewrote the playurl correctly (verified: 18 PCDN/P2P URLs → CDN), but on
+the app it made no difference and added overhead — because the app fires a ~30-connection P2P peer
+swarm on ports 8000/4480 that hangs ~10s each **independently of the playurl URLs**. Rewriting the
+playurl does not stop that swarm. Confirms the wall: the app's P2P is not suppressible from the
+proxy. Kept below for reference; the git history has the files.
+
 
 A smarter playurl rewriter than `bili_overseas.js`, porting realzza/bilibili-accelerator's
 `core/rewrite.js` classification. Same protobuf+pako machinery, but the URL policy is:
