@@ -105,6 +105,21 @@ Three layers in one module:
   AdGuard for Android (DNS-level domain block, misses raw-IP), rooted LSPosed app hooks (BBLL),
   or router-level (AdGuard Home / Pi-hole) covering the whole LAN.
 
+## 6b. Outcome (2026-07-22) — what actually works
+
+- **Routing beats media-rewriting.** The reliable fix is `bili-direct.conf` (DIRECT for
+  `grpc.biliapi.net` + `app.bilibili.com`), referenced **above** `cn-proxy.conf` in `Default.conf`.
+  From the overseas IP, Bilibili returns a CDN-only, no-P2P playurl → regular (UGC) videos start
+  fast, single playurl call, no retry storm. Media (`bilivideo.com`) already DIRECT via `cn-direct.conf`.
+- **The `bili_overseas` module is then largely redundant** for UGC; recommend it OFF (its global
+  `force-http-engine` adds overhead / possible stalls, and routing already yields CDN-only playurl).
+- **Paid / PGC (番剧, membership) stays slow — proxy can't reliably fix it.** Membership verifies
+  fine via China (`api.bilibili.com/pgc/...`), but PGC content insists on P2P peers that hang from
+  overseas (~10s each), and PGC playurl shares host/connection with UGC so it can't be routed
+  separately. The module's redirect + the app's internal P2P negotiation don't fully solve it.
+  Robust answer for paid content: a region-unlock/roaming client (biliRoaming / 哔哩漫游), not proxy rules.
+- **Net:** UGC fixed via routing; PGC is an accepted limitation (or use biliRoaming).
+
 ## 7. Ideas to improve next time
 
 - **Confirm the redirect actually fixes cold start** with a fresh capture; if `force-http-engine`
