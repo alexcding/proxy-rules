@@ -1,7 +1,22 @@
-#!name=Bilibili Overseas (force CDN)
-#!desc=Rewrites the Bilibili app's gRPC/protobuf playurl (PlayViewUnite/PlayView) so every stream URL points at the regular CDN (upos-*.bilivideo.com) instead of raw-IP PCDN/P2P peers — the app-side equivalent of the web accelerator's playurl rewrite, so the player never tries P2P and starts fast. Fail-safe: any parse/inflate error passes the response through unchanged. Requires MITM on grpc.biliapi.net + app.bilibili.com.
+#!name=Bilibili Overseas
+#!desc=Makes the Bilibili app start videos fast from outside China. Two parts: (1) a script rewrites the gRPC/protobuf playurl (PlayViewUnite/PlayView) so every stream URL points at the regular CDN (upos-*.bilivideo.com) instead of PCDN/P2P peers — the app-side equivalent of the web accelerator; (2) rules reject the app's P2P swarm ports (8000/4480) and known PCDN/tracker backends, which otherwise hang ~10s each from overseas and stall playback. Script is fail-safe (any parse/inflate error passes through unchanged). Requires MITM on grpc.biliapi.net + app.bilibili.com.
+
+[Rule]
+# P2P swarm ports — dead peers hang ~10s each from overseas; reject for instant fallback
+DEST-PORT,8000,REJECT
+DEST-PORT,4480,REJECT
+# P2P tracker + known PCDN backend domains
+DOMAIN-SUFFIX,solseed.cn,REJECT
+DOMAIN-SUFFIX,mcdn.bilivideo.cn,REJECT
+DOMAIN-SUFFIX,mcdn.bilivideo.com,REJECT
+DOMAIN-SUFFIX,mcdn.bilivideo.net,REJECT
+DOMAIN-SUFFIX,szbdyd.com,REJECT
+DOMAIN-SUFFIX,mountaintoys.cn,REJECT
+DOMAIN-SUFFIX,nexusedgeio.com,REJECT
+DOMAIN-KEYWORD,-302,REJECT
 
 [Script]
+# Rewrite playurl PCDN/P2P stream URLs -> CDN (upos-*.bilivideo.com). Fail-safe passthrough on error.
 bilibili.forcecdn = type=http-response,pattern=^https:\/\/(?:grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.(?:app\.playurl\.v1\.PlayURL\/PlayView|app\.playerunite\.v1\.Player\/PlayViewUnite|pgc\.gateway\.player\.v2\.PlayURL\/PlayView)$,requires-body=true,binary-body-mode=true,timeout=15,script-path=https://raw.githubusercontent.com/alexcding/proxy-rules/refs/heads/main/bili_overseas.js,script-update-interval=0
 
 [MITM]
