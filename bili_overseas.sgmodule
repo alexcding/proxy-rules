@@ -9,7 +9,7 @@ force-http-engine-hosts = %APPEND% *:4480, *:4483, *:8000, *:8082, *:9102
 # Redirect any non-CDN upgcxcode media (raw-IP P2P peers, mcdn/szbdyd/yirujs, regional cn-*) to the
 # overseas CDN mirror, reusing the upsig the PCDN URL already carries. The request succeeds via CDN,
 # so the app never falls into P2P retry/backoff. upos-* CDN hosts are excluded so there is no loop.
-^https?:\/\/(?!upos-)[\w.\-]+(?::\d+)?\/(?:v1\/resource\/)?(upgcxcode\/\S+)$ https://upos-sz-mirrorcosov.bilivideo.com/$1 302
+^https?:\/\/(?!upos-)[\w.\-]+(?::\d+)?\/(?:v1\/resource\/)?(upgcxcode\/\S+)$ https://upos-sz-mirrorcosov.bilivideo.com/$1 header
 
 [Script]
 # Also rewrite the gRPC playurl so the app's primary source is CDN (fewer peer attempts). Fail-safe.
