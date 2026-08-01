@@ -1,5 +1,5 @@
 #!name=The Weather Network Ad Removal
-#!desc=Blocks the ad and tracking SDKs bundled in The Weather Network iOS app (com.theweathernetwork.weathereyeiphone): Google Ad Manager + IMA video ads, Amazon Publisher Services (DTB), Nimbus, ComScore, Kochava attribution, Microsoft Clarity session recording, and Firebase Analytics. Also collapses the anchored-banner blank strip by rewriting the app's own remote config (anchoredBannerAd → false) — no subscription/premium state is spoofed. The Rule section is device-wide domain rules (no MitM); the banner-collapse needs MitM on appframework.pelmorex.com only.
+#!desc=Blocks The Weather Network iOS app ad/tracking SDKs and removes its ad layout slots (anchored banners plus News/Video big-box slots), so rejected ads do not leave blank space. No subscription or premium state is spoofed. Requires MitM for appframework.pelmorex.com.
 #!author=alexcding
 #!category=Weather
 
@@ -40,14 +40,12 @@ DOMAIN,firebaselogging-pa.googleapis.com,REJECT
 #   is intercepted (see Script); every data/weather/search endpoint passes through untouched.
 
 [Script]
-# Collapse the anchored-banner blank strip. anchoredBannerAd is the app's own per-screen
-# "show a banner here?" switch (ships with news=false → news screen has no banner box).
-# A traffic capture showed the app requests getConfig with configVersion=125 (== bundled
-# version) and the incremental-config origin returns 502 — no rewritable config ever arrives,
-# so the app keeps the bundled banners-ON config. Rather than edit a response that never comes,
-# this http-REQUEST script short-circuits getConfig with our own schema-identical config that
-# has every anchoredBannerAd flipped to false (version bumped to 126 so the client applies it).
-# The origin's 502 is bypassed. No subscription/Account/isPremium/RevenueCat state is touched.
+# The app keeps its ad containers when an ad request is rejected. Its runtime config has two
+# independent layout controls: Ads.anchoredBannerAd (the anchored strip) and
+# ContentSurfacing.screens.*.bigBoxAd (the News/Video inline slot). The config endpoint currently
+# returns an upstream 502 for the app's normal request, so this request script supplies a
+# schema-compatible fallback with both controls disabled. Its version is bumped above the
+# version sent by the app on every request, so an older cached config cannot win.
 twn.nobanner = type=http-request,pattern=^https:\/\/appframework\.pelmorex\.com\/api\/appframework\/Config\/getConfig\/,requires-body=0,timeout=20,script-path=https://raw.githubusercontent.com/alexcding/proxy-rules/refs/heads/main/weathernetwork_noads.js,script-update-interval=0
 
 [MITM]
