@@ -1,0 +1,40 @@
+#!name=The Weather Network Ad Removal
+#!desc=Blocks the ad and tracking SDKs bundled in The Weather Network iOS app (com.theweathernetwork.weathereyeiphone): Google Ad Manager + IMA video ads, Amazon Publisher Services (DTB), Nimbus, ComScore, Kochava attribution, Microsoft Clarity session recording, and Firebase Analytics. Domain-level rules only — no MitM required. Note: rules are device-wide; all listed domains are pure ad/telemetry hosts with no content value, so this is safe but will also de-ad other apps using the same networks.
+#!author=alexcding
+#!category=Weather
+
+[Rule]
+# --- Google Ad Manager / AdMob (GADIsAdManagerApp; banner + native ads) ---
+DOMAIN-SUFFIX,doubleclick.net,REJECT
+DOMAIN-SUFFIX,googlesyndication.com,REJECT
+DOMAIN-SUFFIX,googleadservices.com,REJECT
+DOMAIN,adservice.google.com,REJECT
+# Google IMA SDK (pre-roll video ads in JWPlayer streams)
+DOMAIN,imasdk.googleapis.com,REJECT
+
+# --- Amazon Publisher Services / DTB header bidding ---
+# Confirmed in bundle: aax / aax-us-east / aax-dtb-mobile-geo / c / video-player.aps
+DOMAIN-SUFFIX,amazon-adsystem.com,REJECT
+
+# --- Nimbus (ads-by-nimbus exchange; app ships 6 Nimbus*Kit frameworks) ---
+DOMAIN-SUFFIX,adsbynimbus.com,REJECT
+
+# --- ComScore audience measurement (confirmed: census-app.scorecardresearch.com) ---
+DOMAIN-SUFFIX,scorecardresearch.com,REJECT
+
+# --- Kochava install attribution (listed in NSPrivacyTrackingDomains) ---
+DOMAIN-SUFFIX,kochava.com,REJECT
+
+# --- Microsoft Clarity session recording ---
+DOMAIN-SUFFIX,clarity.ms,REJECT
+
+# --- Firebase Analytics telemetry (crash reporting left untouched) ---
+DOMAIN,app-measurement.com,REJECT
+DOMAIN,firebaselogging-pa.googleapis.com,REJECT
+
+# --- Deliberately NOT blocked ---
+# sdk.privacy-center.org (Didomi CMP): blocking the consent platform can hang the
+#   first-run consent flow; leave it reachable.
+# appframework.pelmorex.com / *.pelmorex.com: first-party app config + data APIs;
+#   app binaries are FairPlay-encrypted so ad-only Pelmorex endpoints can't be
+#   isolated with confidence. Blocking the suffix would break the app.
