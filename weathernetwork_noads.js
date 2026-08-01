@@ -1,74 +1,26 @@
 // The Weather Network — collapse the anchored-banner blank strip.
 //
-// The app fetches its whole runtime config from
-//   https://appframework.pelmorex.com/api/appframework/Config/getConfig/iPhone
-// (only every Config.refreshSec = 86400s / 24h — so it runs off a local cache most of
-// the time; a fresh fetch happens after reinstall or once the 24h window elapses).
+// WHY A SYNTHESIZED RESPONSE (not a surgical edit):
+// The app pulls its config from appframework.pelmorex.com/.../Config/getConfig, sending its
+// current configVersion. A traffic capture showed the app sends configVersion=125 (== the
+// bundled config version) and the incremental-config origin replies 502 "Failed to contact the
+// origin" — i.e. it only returns a body when the client is on an OLDER version, so no rewritable
+// config ever reaches the app; it falls back to the bundled banners-ON config. There is no live
+// response to edit.
 //
-// Ads.anchoredBannerAd is the app's OWN per-screen "draw an anchored banner here?" switch
-// (shipped config has news=false). Flip every entry to false so the app never lays out the
-// banner container → no reserved blank strip. Verified from a traffic capture that the app
-// does NOT collapse the box on ad-load failure, so this layout-suppression path is the only
-// proxy-level fix. No subscription/Account/isPremium/RevenueCat state is read or modified.
+// So this runs as an http-REQUEST script and short-circuits getConfig with our own copy of the
+// app's config (schema-identical to the bundled config.json) with Ads.anchoredBannerAd flipped to
+// false on every screen and Config.version bumped to 126 so the client applies it over cached 125.
+// The origin's 502 is never hit. No subscription/Account/isPremium/RevenueCat state is touched.
 
-let body = $response.body;
+const CONFIG = {"Config":{"version":126,"refreshSec":86400,"latestURL":"https://appframework.pelmorex.com/api/appframework/Config/getConfig/iPhone?appVersion={appVer}&configVersion={cfgVer}&format=json"},"Resource":{"refreshSec":86400,"latestURL":"https://appframework.pelmorex.com/api/appframework/Resource/Update/iPhone"},"Locations":{"migrateLocationsMax":10,"savedLocationsMax":20},"Data":{"dataTypes":[{"name":"weather","value":"LongTerm"},{"name":"weatherPremium","value":"LastObservation"},{"name":"reports","value":"PollenObs"},{"name":"alerts","value":"Alerts"},{"name":"chartsDetail","value":"PrecipChart,TemperatureChart,TempPrecipChart,WindChart"},{"name":"multipleLocationWeather","value":"Observation"},{"name":"topStories","value":"News"},{"name":"videos","value":"Video"},{"name":"metadata","value":"WeatherMetaData"},{"name":"observation","value":"Observation"},{"name":"pssDetails","value":"PSSRSSChart"},{"name":"watchWeather","value":"Observation,PSSRSSChart,Yesterday"},{"name":"watch2Weather","value":"Observation,StartStopPrecip,Yesterday"},{"name":"watch2Complication","value":"ObservationTimeline"},{"name":"userVideos","value":"Video"}],"weatherURL":"https://appframework.pelmorex.com/api/appframework/WeatherData/getData/iPhone?appVersion={appVer}&configVersion={cfgVer}&dataType={dataType}&deviceLang={resLanguage}&deviceLocale={resLocale}&location={locDataCode}&measurementUnit={prefSystemUnit}&resourceCommonVersion={resCommonVer}&resourceVersion={resLocalVer}&tempUnit={prefTempUnit}","alertsURL":"https://p1d.pelmorex.com/api/appframework/WeatherData/getData/iPhone?appVersion={appVer}&configVersion={cfgVer}&dataType={dataType}&deviceLang={resLanguage}&deviceLocale={resLocale}&location={locDataCode}&measurementUnit={prefSystemUnit}&resourceCommonVersion={resCommonVer}&resourceVersion={resLocalVer}&tempUnit={prefTempUnit}","multipleLocationWeatherParameters":{"root":[{"name":"appName","value":"iPhone"},{"name":"appVersion","value":"{appVer}"},{"name":"configVersion","value":"{cfgVer}"},{"name":"deviceLang","value":"{resLanguage}"},{"name":"deviceLocale","value":"{resLocale}"},{"name":"resourceCommonVersion","value":"{resCommonVer}"},{"name":"resourceVersion","value":"{resLocalVer}"}],"locationList":[{"name":"dataType","value":"{dataType}"},{"name":"id","value":"{locID}"},{"name":"location","value":"{locDataCode}"},{"name":"measurementUnit","value":"{prefSystemUnit}"},{"name":"tempUnit","value":"{prefTempUnit}"}]},"multipleLocationWeatherURL":"https://appframework.pelmorex.com/api/appframework/WeatherData/getMultipleLocationData/iPhone","contentURL":"https://appframework.pelmorex.com/api/appframework/Data/getData/iPhone?appVersion={appVer}&category={dataCategory}&configVersion={cfgVer}&dataType={dataType}&deviceLang={resLanguage}&isPremium={isPremiumUser}&keyword={dataSearchKeyword}&location={locCode}&pageindex={dataPageIndex}&pagesize={dataPageSize}&resourceCommonVersion={resCommonVer}&resourceVersion={resLocalVer}&timezoneOffset={devTimezoneOffset}","downloadTimeout":60,"dataRetryLimit":2,"dataRetryIntervalSec":1,"multipleLocDataRetryLimit":3,"multipleLocDataRetryIntervalSec":1,"showLoadingDelaySec":1.5,"watchWeatherURL":"https://appframework.pelmorex.com/api/appframework/WeatherData/getData/iWatch?appVersion={appVer}&configVersion={cfgVer}&dataType={dataType}&deviceLang={resLanguage}&deviceLocale={resLocale}&location={locDataCode}&measurementUnit={prefSystemUnit}&resourceCommonVersion={resCommonVer}&resourceVersion={resLocalVer}&tempUnit={prefTempUnit}","videoItemURL":"https://appframework.pelmorex.com/api/appframework/Data/GetWebVideo/iPhone?appVersion={appVer}&deviceLang={resLanguage}&deviceLocale={resLocale}&url={dataVideoURL}"},"Search":{"inputCharactersMin":3,"inputCharactersMax":50,"inputDelaySeconds":0.5,"minSearchResultsBeforeMore":5,"locationTypes":[{"name":"city","value":"city"},{"name":"airport","value":"airport"}],"textSearchURL":"https://pelmsearch.pelmorex.com/api/appframework/search/v2/getdata?keyword={searchInput}&lat={devLat}&long={devLong}&locale={searchLocale}&profile={searchLocType}&firstcountry={searchFirstCountryCode}&radius=50&top=50&format=json","followMeURL":"https://pelmsearch.pelmorex.com/api/appframework/search/v2/getfollowme?lat={devLat}&long={devLong}&locale={searchLocale}&maxdist=50&format=json&userId={appUniqueID}&aamId={aamUserId}","placeCodeSearchURL":"https://pelmsearch.pelmorex.com/api/appframework/search/GetDataByCode?keyword={searchInput}&locale={searchLocale}&profile={searchLocType}&format=json","followMeDistanceFilterMeters":1000,"followMeMaxUpdateInterval":60,"followMeRetryLimit":2,"followMeRetryIntervalSec":1,"nearbyURL":"https://pelmsearch.pelmorex.com/api/appframework/search/getnearby?lat={devLat}&long={devLong}&locale={searchLocale}&profile={searchLocType}&maxdist=50&top=50&format=json","connectionTimeoutSec":7,"friendlyURL":"https://pelmsearch.pelmorex.com/api/appframework/search/getdatabyurl?keyword={searchInput}&locale={searchLocale}&profile={searchLocType}&firstcountry={searchFirstCountryCode}&format=json","visitEnabled":true},"Map":{"dataTypeURL":"https://appframework.pelmorex.com/api/appframework/Maps/getDataTypes/iPhone?deviceLang={resLanguage}&deviceLocale={resLocale}&appVersion={appVer}&configVersion={cfgVer}&resourceVersion={resLocalVer}&resourceCommonVersion={resCommonVer}","sourceURL":"https://appframework.pelmorex.com/api/appframework/Maps/getData/iPhone?location={locDataCode}&dataType={mapDataType}&deviceLang={resLanguage}&deviceLocale={resLocale}&tempUnit={prefTempUnit}&measurementUnit={prefSystemUnit}&appVersion={appVer}&configVersion={cfgVer}&resourceVersion={resLocalVer}&resourceCommonVersion={resCommonVer}&offset={devTimezoneOffset}&visibleRegion={mapVisibleRegion}","mapOverviewStaticURL":"https://fuseimages.twnmm.com/fimage_gen.php?lang=en&width={mapWidth}&height={mapHeight}&zoom={mapZoom}&lat={mapCenterLatitude}&lon={mapCenterLongitude}&base=none&precip=pr&hour=1&color=8bit&logo=nologo&binglogo=false&submit=Generate","prefetchTimestepCount":2,"serverRetryLimit":3,"overviewMapOverlayRefreshIntervalSec":600,"serverRetryIntervalSec":1,"tileRetryIntervalSec":3},"Ads":{"account":"19849159","adUnit":"/{adAccount}/{adAppGroup}/{adLanguage}/{adContent}","locationTypes":[{"name":"city","value":"cities"},{"name":"airport","value":"airport"}],"adNetworkExtras":[{"name":"appVersion","value":"{appVerMajorMinor}"},{"name":"appleWatchUser","value":"{appleWatchUserCode}"},{"name":"b","value":"{userAge}"},{"name":"cond","value":"{metadataObsIcon}"},{"name":"contviewed","value":"{adSessionContentViewsCount}"},{"name":"country","value":"{locAdCountryCode}"},{"name":"feelslike","value":"{metadataObsFeelsLike}"},{"name":"followMe","value":"{followMeCode}"},{"name":"g","value":"{userGenderCode}"},{"name":"humidity","value":"{metadataObsHumidity}"},{"name":"location","value":"{locCode}"},{"name":"locationname","value":"{locAdCode}-{locAdCountryProvCode}"},{"name":"newscat","value":"{screenDataNewsCategory}"},{"name":"newsid","value":"{screenDataNewsID}"},{"name":"platform","value":"{adPlatform}"},{"name":"pollen","value":"{metadataPollenObs}"},{"name":"postal","value":"{primaryAdPostalCode}"},{"name":"precip","value":"{metadataObsPrecipExists}"},{"name":"pressure","value":"{metadataObsPressure}"},{"name":"province","value":"{locAdProvCode}"},{"name":"product","value":"{adProduct}"},{"name":"rainacclt","value":"{metadataLTRain}"},{"name":"rainaccst","value":"{metadataSTRain}"},{"name":"snowacclt","value":"{metadataLTSnow}"},{"name":"snowaccst","value":"{metadataSTSnow}"},{"name":"stperiod","value":"{screenDataSTPeriod}"},{"name":"redesign_platform","value":"iPhoneApp"},{"name":"pos","value":"{adPosition}"},{"name":"temp","value":"{metadataObsTemperature}"},{"name":"uvdata","value":"{metadataUVObs}"},{"name":"sat_temp","value":"{metadataSatTemperature}"},{"name":"sat_cond","value":"{metadataSatIconKeyword}"},{"name":"sun_temp","value":"{metadataSunTemperature}"},{"name":"sun_cond","value":"{metadataSunIconKeyword}"},{"name":"videocat","value":"{screenDataVideoCategory}"},{"name":"videoid","value":"{screenDataVideoID}"},{"name":"visibility","value":"{metadataObsVisibility}"},{"name":"warning","value":"{metadataAlertExtended}"},{"name":"windspeed","value":"{metadatObsWindspeed}"},{"name":"dud","value":"{adSurveyResults}"},{"name":"flu","value":"{dataFluLevel}"},{"name":"TWNAdManager.extrasAdPosition","value":"{adSize}"},{"name":"iphoneapp_ad_pos","value":"{adDynamicPosition}"},{"name":"iconpos","value":"{adSponsorshipIndex}"},{"name":"swo_risk_level","value":"{metadataSwoRiskLevel}"},{"name":"swo_risk_type","value":"{metadataSwoRiskType}"},{"name":"bug_mosquito","value":"{metadataBugMosquito}"},{"name":"bug_black_fly","value":"{metadataBugBlackFly}"},{"name":"bug_deer_fly","value":"{metadataBugDeerFly}"},{"name":"splashsync","value":"{adSplashSync}"},{"name":"ltln","value":"{latLongEnabled}"},{"name":"lt","value":"{latitude}"},{"name":"ln","value":"{longitude}"}],"anchoredBannerAd":[{"name":"dashboard","value":false},{"name":"current","value":false},{"name":"hourly","value":false},{"name":"36hours","value":false},{"name":"14day","value":false},{"name":"special_reports","value":false},{"name":"news","value":false},{"name":"video","value":false},{"name":"maps","value":false},{"name":"charts","value":false},{"name":"alerts","value":false},{"name":"pss","value":false}],"sponsorshipURL":"https://pubads.g.doubleclick.net/gampad/adx?iu=/{adAccount}/{adAppGroup}/{adLanguage}/{adContent}&t=appVersion%3D{appVerMajorMinor}%26location%3D{locCode}%26locationname%3D{locAdCode}-{locAdCountryProvCode}%26country%3D{locAdCountryCode}%26province%3D{locAdProvCode}%26product%3D{adProduct}%26platform%3D{adPlatform}%26iconpos%3D{adSponsorshipIndex}%26appleWatchUser%3D{appleWatchUserCode}%26flu%3D{dataFluLevel}%26pollen%3D{metadataPollenObs}&sz={adSize}&c={randomNumber}","videoPrerollURL":"https://pubads.g.doubleclick.net/gampad/ads?impl=s&gdfp_req=1&env=vp&correlator={adCorrelator}&iu=/{adAccount}/{adAppGroup}/{adLanguage}/{adContent}&output=xml_vast3&sz=400x300&ciu_szs=&unviewed_position_start=1&cust_params=","newsPrerollURL":"https://pubads.g.doubleclick.net/gampad/ads?impl=s&gdfp_req=1&env=vp&correlator={randomNumber16Digits}&iu=/{adAccount}/{adAppGroup}/{adLanguage}/{adContent}&cust_params=","bannerRefreshIntervalSec":10,"sponsorshipRefreshSec":86400},"Tracking":{"scrollTimerSec":1.5,"locationToGTMEnabled":false,"locationToIISEnabled":true,"locationToIISURL":"https://gethtml.pelmorex.com/api/searchv2/get.html?lat={devLat}&long={devLong}&gpsAcc={devGPSAccuracy}&userId={appUniqueID}&aamId={aamUserId}&ts={devGPSTimestamp}&osadis={devIDFA}&type={devGPSType}&platform=IPHONE&idtype=HARDWARE_IDFA&bt_status={devBluetoothStatus}&battery_level={devBatteryLevel}&charging={devBatteryCharging}"},"ContentSurfacing":{"screens":{"News":[{"name":"bannerAd","value":3,"showContent":false},{"name":"bigBoxAd","value":6,"showContent":true}],"Videos":[{"name":"bannerAd","value":3,"showContent":false},{"name":"bigBoxAd","value":6,"showContent":true}]}},"CNP":{"accountURL":"https://uup.pelmorex.com/UUPWebApi/iPhone/4PSdOta1Ves1/{cnpQueryType}","productListURL":"https://uup.pelmorex.com/UUPWebApi/iPhone/4PSdOta1Ves1/Products/Cultures/{cnpLanguage}","productURL":"https://uup.pelmorex.com/UUPWebApi/iPhone/4PSdOta1Ves1/Users/{cnpUserToken}/Products/{cnpQueryType}","fastSubscribeURL":"https://uup.pelmorex.com/UUPWebApi/iPhone/4PSdOta1Ves1/Users/FollowMe/FastSubscribe","fastUnsubscribeURL":"https://uup.pelmorex.com/UUPWebApi/iPhone/4PSdOta1Ves1/Users/FollowMe/FastUnsubscribe","followMePullAlertsURL":"https://p1d.pelmorex.com/api/appframework/WeatherData/getData/iPhone?location={locDataCode}&dataType=CNPAlerts&PreviousAlertIDs={alertIds}&deviceLang={cnpLanguage}&deviceLocale={cnpLanguage}&tempUnit=C&measurementUnit=metric&appVersion={appVer}&configVersion={cfgVer}&resourceVersion={resLocalVer}&resourceCommonVersion={resCommonVer}","queryTypes":[{"name":"Account","value":"Account"},{"name":"Authenticate","value":"Authenticate"},{"name":"Products","value":"Products"},{"name":"Uninstall","value":"nt"},{"name":"Users","value":"Users"},{"name":"Activate","value":"activate"},{"name":"Deactivate","value":"deactivate"},{"name":"UserProducts","value":""},{"name":"Token","value":"token"}],"products":[{"name":"Warning","value":"P0001"}],"cnpRefreshDelta":604800,"followMePullAlertsRefresh":86400,"followMeMovingSpeedThreshold":30,"followMeSlowSpeedThreshold":5,"distanceFromLastPlaceCode":15},"EUCookiePrivacyConsent":{"countries":[{"name":"Austria","code":"AT"},{"name":"Belgium","code":"BE"},{"name":"Bulgaria","code":"BG"},{"name":"Cyprus","code":"CY"},{"name":"Croatia","code":"HR"},{"name":"Czech Republics","code":"CZ"},{"name":"Denmark","code":"DK"},{"name":"Estonia","code":"EE"},{"name":"Finland","code":"FI"},{"name":"France","code":"FR"},{"name":"Germany","code":"DE"},{"name":"Greece","code":"GR"},{"name":"Hungary","code":"HU"},{"name":"Ireland","code":"IE"},{"name":"Italy","code":"IT"},{"name":"Latvia","code":"LV"},{"name":"Lithuania","code":"LT"},{"name":"Luxembourg","code":"LU"},{"name":"Malta","code":"MT"},{"name":"Netherlands","code":"NL"},{"name":"Poland","code":"PL"},{"name":"Portugal","code":"PT"},{"name":"Romania","code":"RO"},{"name":"Slovakia","code":"SK"},{"name":"Slovenia","code":"SI"},{"name":"Spain","code":"ES"},{"name":"Sweden","code":"SE"},{"name":"United Kingdom","code":"GB"}]},"RateThisApp":{"enabled":false,"firstRTAShownCounter":4,"reminderRTAIntervalSec":2592000,"releaseRTAIntervalSec":3888000},"AppsFlyer":{"enabled":false},"Survey":{"surveyURL":"https://www.theweathernetwork.com/ca/z_apps_config/iphone-interests-survey","numberOfLaunchesToShow":5,"numberOfDaysToRemind":30},"Firebase":{"fetchFrequency":1,"sendEventIntervalSec":86400},"Account":{"fetchFrequency":24}};
 
-// Turn any anchoredBannerAd structure "off". Handles both shapes:
-//   [ {name, value:bool}, ... ]   (bundled schema)
-//   { screen: bool, ... }         (defensive alternative)
-function disableList(v) {
-  let n = 0;
-  if (Array.isArray(v)) {
-    for (const item of v) {
-      if (item && typeof item === "object" && "value" in item && item.value !== false) {
-        item.value = false; n++;
-      }
-    }
-  } else if (v && typeof v === "object") {
-    for (const k of Object.keys(v)) {
-      if (v[k] !== false) { v[k] = false; n++; }
-    }
+const BODY = JSON.stringify(CONFIG);
+console.log(`[TWN] getConfig short-circuited with banners-off config (${BODY.length} bytes, v${CONFIG.Config && CONFIG.Config.version})`);
+$done({
+  response: {
+    status: 200,
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+    body: BODY
   }
-  return n;
-}
-
-// Recursively find every key literally named "anchoredBannerAd" and disable it, so a
-// differently-nested remote schema is still caught.
-function walk(o) {
-  let n = 0;
-  if (Array.isArray(o)) {
-    for (const x of o) n += walk(x);
-  } else if (o && typeof o === "object") {
-    for (const k of Object.keys(o)) {
-      if (k === "anchoredBannerAd") n += disableList(o[k]);
-      else n += walk(o[k]);
-    }
-  }
-  return n;
-}
-
-try {
-  const cfg = JSON.parse(body);
-  // Diagnostic: prove the rewrite saw the real config and show its shape once.
-  if (cfg && typeof cfg === "object") {
-    console.log(`[TWN] getConfig intercepted; top keys: ${Object.keys(cfg).join(",")}`);
-  }
-  const changed = walk(cfg);
-
-  if (changed > 0) {
-    body = JSON.stringify(cfg);
-    const headers = $response.headers || {};
-    for (const k of Object.keys(headers)) {
-      const lk = k.toLowerCase();
-      if (lk === "content-encoding" || lk === "content-length") delete headers[k];
-    }
-    console.log(`[TWN] anchoredBannerAd disabled on ${changed} screen(s)`);
-    $done({ body, headers });
-  } else {
-    console.log(`[TWN] no anchoredBannerAd found in this response — passing through`);
-    $done({});
-  }
-} catch (e) {
-  console.log(`[TWN] config rewrite skipped (not JSON / parse error): ${e}`);
-  $done({});
-}
+});

@@ -36,17 +36,19 @@ DOMAIN,firebaselogging-pa.googleapis.com,REJECT
 # sdk.privacy-center.org (Didomi CMP): blocking the consent platform can hang the
 #   first-run consent flow; leave it reachable.
 # appframework.pelmorex.com / *.pelmorex.com: first-party app config + data APIs;
-#   the app can't function without them. We do NOT block the suffix — instead the
-#   Script below rewrites ONLY the Config/getConfig response (banner toggle), while
-#   every data/weather/search endpoint on this host passes through untouched.
+#   the app can't function without them. We do NOT block the suffix — only Config/getConfig
+#   is intercepted (see Script); every data/weather/search endpoint passes through untouched.
 
 [Script]
-# Collapse the anchored-banner blank strip. The app pulls its whole config from
-# Config/getConfig; anchoredBannerAd is its own per-screen "show a banner here?" switch
-# (ships with news=false → news screen already has no banner box). The script flips all
-# entries to false so no banner container is laid out anywhere. Subscription/Account
-# state is never read or modified.
-twn.nobanner = type=http-response,pattern=^https:\/\/appframework\.pelmorex\.com\/api\/appframework\/Config\/getConfig\/,requires-body=1,timeout=20,script-path=https://raw.githubusercontent.com/alexcding/proxy-rules/refs/heads/main/weathernetwork_noads.js,script-update-interval=0
+# Collapse the anchored-banner blank strip. anchoredBannerAd is the app's own per-screen
+# "show a banner here?" switch (ships with news=false → news screen has no banner box).
+# A traffic capture showed the app requests getConfig with configVersion=125 (== bundled
+# version) and the incremental-config origin returns 502 — no rewritable config ever arrives,
+# so the app keeps the bundled banners-ON config. Rather than edit a response that never comes,
+# this http-REQUEST script short-circuits getConfig with our own schema-identical config that
+# has every anchoredBannerAd flipped to false (version bumped to 126 so the client applies it).
+# The origin's 502 is bypassed. No subscription/Account/isPremium/RevenueCat state is touched.
+twn.nobanner = type=http-request,pattern=^https:\/\/appframework\.pelmorex\.com\/api\/appframework\/Config\/getConfig\/,requires-body=0,timeout=20,script-path=https://raw.githubusercontent.com/alexcding/proxy-rules/refs/heads/main/weathernetwork_noads.js,script-update-interval=0
 
 [MITM]
 hostname = %APPEND% appframework.pelmorex.com
