@@ -1,0 +1,20 @@
+#!name=YouTube去广告
+#!desc=移除YouTube视频、瀑布流、搜索和Shorts广告，支持画中画、后台播放及字幕翻译；可隐藏YouTube和YouTube Music底栏按钮。需在主配置启用MitM over HTTP/2和QUIC自动回退，并信任MitM证书。支持Premium用户，不支持tvOS。初始化播放依赖init-stream.maasea.workers.dev。
+#!author=Maasea[https://github.com/Maasea], VirgilClyne[https://github.com/VirgilClyne], Choler[https://github.com/Choler], DivineEngine[https://github.com/DivineEngine], app2smile[https://github.com/app2smile]; ported by alexcding
+#!category=YouTube
+#!arguments=blockUpload:false,blockShorts:false,blockImmersive:false,captionLang:zh-Hans,debug:false
+#!arguments-desc=blockUpload: 隐藏上传按钮 (true / false)\nblockShorts: 隐藏Shorts按钮 (true / false)\nblockImmersive: 隐藏YouTube Music选段按钮 (true / false)\ncaptionLang: 字幕翻译语言 (zh-Hans / zh-Hant / ja / ko / en / off)\ndebug: 保留上游参数；当前脚本未启用此调试开关
+
+# Source: efzb-wx/loon@91e0f4c2b3ada0be94c93d1c5e040af7deee96bd
+# Original plugin and source provenance: docs/youtube.md
+# Surge's script adapter expects a JSON object, not Loon's argument list.
+
+[Script]
+youtube.response = type=http-response, pattern=^https:\/\/youtubei\.googleapis\.com\/(youtubei\/v1\/(browse|next|player|search|reel\/reel_watch_sequence|guide|account\/get_setting|get_watch|log_event|config))(\?(.*))?$, script-path=https://raw.githubusercontent.com/alexcding/proxy-rules/refs/heads/main/YouTube_remove_ads_response.js, requires-body=true, binary-body-mode=true, max-size=-1, timeout=20, argument="{"blockUpload":{{{blockUpload}}},"blockShorts":{{{blockShorts}}},"blockImmersive":{{{blockImmersive}}},"captionLang":"{{{captionLang}}}","debug":{{{debug}}}}"
+
+youtube.initplayback = type=http-request, pattern=^https?:\/\/[\w-]+\.googlevideo\.com\/initplayback.+&ack.*, script-path=https://raw.githubusercontent.com/alexcding/proxy-rules/refs/heads/main/YouTube_remove_ads_request.js, requires-body=true, binary-body-mode=true, max-size=-1, timeout=20, argument="{"captionLang":"{{{captionLang}}}"}"
+
+youtube.log_event = type=http-request, pattern=^https:\/\/youtubei\.googleapis\.com\/youtubei\/v1\/log_event, script-path=https://raw.githubusercontent.com/alexcding/proxy-rules/refs/heads/main/YouTube_remove_ads_request.js, requires-body=true, binary-body-mode=true, max-size=-1, timeout=20, argument="{"blockUpload":{{{blockUpload}}},"blockShorts":{{{blockShorts}}},"blockImmersive":{{{blockImmersive}}},"captionLang":"{{{captionLang}}}","debug":{{{debug}}}}"
+
+[MITM]
+hostname = %APPEND% *.googlevideo.com, youtubei.googleapis.com
