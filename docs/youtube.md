@@ -1,7 +1,7 @@
 # YouTube Surge module
 
-[`youtube.sgmodule`](../youtube.sgmodule) ports the script rules and hostname
-list from [efzb-wx/loon commit 91e0f4c2](https://github.com/efzb-wx/loon/commit/91e0f4c2b3ada0be94c93d1c5e040af7deee96bd).
+[`youtube.sgmodule`](../youtube.sgmodule) ports all three script rules and the
+hostname list from [efzb-wx/loon commit 91e0f4c2](https://github.com/efzb-wx/loon/commit/91e0f4c2b3ada0be94c93d1c5e040af7deee96bd).
 The [original Loon plugin](../vendor/efzb-wx/loon/YoutubeBlock/YouTube_remove_ads.lpx)
 is preserved unchanged. Both referenced JavaScript bundles are copied into this
 repository with their original author headers and bytes intact:
@@ -37,21 +37,28 @@ passing Loon's array would silently leave the scripts' internal defaults active.
 The upstream bundles do not connect `debug` to their logger, so that retained
 parameter has no effect in this snapshot.
 
-Both scripts use binary bodies. `max-size=-1` avoids Surge's default buffering
+The vendored scripts use binary bodies. `max-size=-1` avoids Surge's default buffering
 limit skipping large protobuf responses, and each script has a 20-second timeout.
 MITM hostnames are appended to the existing profile.
 
-## Omitted initplayback rule
+## initplayback fallback
 
-The upstream plugin also rewrites `*.googlevideo.com/initplayback` requests,
-redirecting them to the remote `https://init-stream.maasea.workers.dev/` service.
-This port omits that rule and the `*.googlevideo.com` MITM hostname, so playback
-initialization is not intercepted and does not depend on that service. The
-copied request script still contains the upstream initplayback code, unused.
+The upstream plugin redirects `*.googlevideo.com/initplayback` (Onesie) requests
+to the remote `https://init-stream.maasea.workers.dev/` service when it has a
+cached key, and otherwise answers them with an empty response. With the full
+upstream rule the player could hang on loading, while removing the rule let ads
+through this path.
+This port keeps the rule but points it at the local
+[`YouTube_initplayback_empty.js`](../YouTube_initplayback_empty.js), which always
+takes the upstream fallback: it drops the cached key for the current app and
+returns an empty response, so the app retries through `youtubei/v1/player`,
+which the response script cleans. Nothing is sent to the Worker. The copied
+request script still contains the upstream redirect code, now used only for
+`log_event`.
 
 ## Validation
 
-Run `node --test tests/youtube.test.cjs` for source integrity, route parity
-(excluding initplayback), argument substitution, and execution with mocked Surge
+Run `node --test tests/youtube.test.cjs` for source integrity, route parity,
+argument substitution, and execution with mocked Surge
 APIs. These checks do not
 replace testing video playback, Shorts, Music, PiP, or translation in the apps.

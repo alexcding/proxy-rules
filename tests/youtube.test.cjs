@@ -11,7 +11,7 @@ const moduleText = read('youtube.sgmodule');
 const defaults = Object.fromEntries(moduleText.match(/^#!arguments=(.+)$/m)[1]
   .split(',').map((part) => part.trim().split(':')));
 const rules = moduleText.split('\n').filter((line) => /^youtube\./.test(line));
-const argument = (rule, overrides = {}) => rule.match(/argument="(.*)"$/)[1]
+const argument = (rule, overrides = {}) => (rule.match(/argument="(.*)"$/)?.[1] ?? '{}')
   .replace(/\{\{\{(\w+)\}\}\}/g, (_, key) => ({ ...defaults, ...overrides })[key]);
 
 function run(rule, { url, headers = {}, body = new Uint8Array(), config = {}, overrides = {} } = {}) {
@@ -48,20 +48,21 @@ test('vendored sources retain the downloaded bytes', () => {
   }
 });
 
-test('upstream routes except initplayback use local repository scripts and binary bodies', () => {
+test('all upstream routes use local repository scripts', () => {
   const original = read('vendor/efzb-wx/loon/YoutubeBlock/YouTube_remove_ads.lpx')
-    .split('\n').filter((line) => /^http-(request|response) /.test(line) && !line.includes('initplayback'));
-  assert.equal(rules.length, 2);
-  assert.ok(rules.every((rule) => !rule.includes('initplayback')));
-  assert.doesNotMatch(moduleText, /googlevideo/);
+    .split('\n').filter((line) => /^http-(request|response) /.test(line));
+  assert.equal(rules.length, 3);
   rules.forEach((rule, index) => {
     const [, type, pattern] = original[index].match(/^(http-\w+) (\S+)/);
     assert.ok(rule.includes(`type=${type}, pattern=${pattern},`));
     new RegExp(pattern);
     assert.ok(rule.includes('script-path=https://raw.githubusercontent.com/alexcding/proxy-rules/refs/heads/main/'));
-    assert.ok(rule.includes('requires-body=true, binary-body-mode=true'));
   });
-  assert.match(moduleText, /hostname = %APPEND% youtubei\.googleapis\.com$/m);
+  assert.ok(rules[0].includes('requires-body=true, binary-body-mode=true'));
+  assert.ok(rules[1].includes('script-path=https://raw.githubusercontent.com/alexcding/proxy-rules/refs/heads/main/YouTube_initplayback_empty.js,'));
+  assert.ok(rules[2].includes('requires-body=true, binary-body-mode=true'));
+  assert.doesNotMatch(moduleText, /maasea\.workers\.dev/);
+  assert.match(moduleText, /hostname = %APPEND% \*\.googlevideo\.com, youtubei\.googleapis\.com/);
 });
 
 test('Surge substitutions yield named JSON values, preserving Loon defaults', () => {
@@ -69,7 +70,7 @@ test('Surge substitutions yield named JSON values, preserving Loon defaults', ()
     blockUpload: false, blockShorts: false, blockImmersive: false, captionLang: 'zh-Hans', debug: false,
   });
   for (const lang of ['zh-Hans', 'zh-Hant', 'ja', 'ko', 'en', 'off']) {
-    const result = JSON.parse(argument(rules[1], { captionLang: lang, blockUpload: 'true' }));
+    const result = JSON.parse(argument(rules[2], { captionLang: lang, blockUpload: 'true' }));
     assert.equal(result.captionLang, lang);
     assert.equal(result.blockUpload, true);
   }
@@ -77,7 +78,7 @@ test('Surge substitutions yield named JSON values, preserving Loon defaults', ()
 
 test('log_event strips encoding and removes hot-hash only without a cached key', () => {
   for (const cached of [false, true]) {
-    const { result, logs } = run(rules[1], {
+    const { result, logs } = run(rules[2], {
       url: 'https://youtubei.googleapis.com/youtubei/v1/log_event',
       headers: { 'Content-Encoding': 'gzip', 'X-YouTube-Hot-Hash-Data': 'hash', Accept: '*/*' },
       config: cached ? { youtube: { clientKey: 'key' } } : {},
@@ -85,6 +86,28 @@ test('log_event strips encoding and removes hot-hash only without a cached key',
     assert.equal(result.headers['Content-Encoding'], undefined);
     assert.equal(result.headers['X-YouTube-Hot-Hash-Data'], cached ? 'hash' : undefined);
     assert.equal(result.headers.Accept, '*/*');
+    assert.deepEqual(logs, []);
+  }
+});
+
+test('initplayback returns an empty response without redirecting and clears only the matching key', () => {
+  for (const [userAgent, cleared, kept] of [
+    ['com.google.ios.youtube/21.0', 'youtube', 'youtubeMusic'],
+    ['com.google.ios.youtubemusic/8.0', 'youtubeMusic', 'youtube'],
+  ]) {
+    const { result, store, logs } = run(rules[1], {
+      url: 'https://rr1.googlevideo.com/initplayback?foo=1&ack=1',
+      headers: { 'User-Agent': userAgent },
+      body: Uint8Array.from([26, 3, 42, 1, 1]),
+      config: { youtube: { clientKey: 'video' }, youtubeMusic: { clientKey: 'music' } },
+    });
+    assert.equal(result.url, undefined);
+    assert.equal(result.response.status, 200);
+    assert.ok(result.response.body instanceof Uint8Array);
+    assert.equal(result.response.body.length, 0);
+    const config = JSON.parse(store.YouTubeConfig);
+    assert.equal(config[cleared], undefined);
+    assert.ok(config[kept]);
     assert.deepEqual(logs, []);
   }
 });
