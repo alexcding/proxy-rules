@@ -48,10 +48,12 @@ test('vendored sources retain the downloaded bytes', () => {
   }
 });
 
-test('all upstream routes use local repository scripts and binary bodies', () => {
+test('upstream routes except initplayback use local repository scripts and binary bodies', () => {
   const original = read('vendor/efzb-wx/loon/YoutubeBlock/YouTube_remove_ads.lpx')
-    .split('\n').filter((line) => /^http-(request|response) /.test(line));
-  assert.equal(rules.length, 3);
+    .split('\n').filter((line) => /^http-(request|response) /.test(line) && !line.includes('initplayback'));
+  assert.equal(rules.length, 2);
+  assert.ok(rules.every((rule) => !rule.includes('initplayback')));
+  assert.doesNotMatch(moduleText, /googlevideo/);
   rules.forEach((rule, index) => {
     const [, type, pattern] = original[index].match(/^(http-\w+) (\S+)/);
     assert.ok(rule.includes(`type=${type}, pattern=${pattern},`));
@@ -59,16 +61,15 @@ test('all upstream routes use local repository scripts and binary bodies', () =>
     assert.ok(rule.includes('script-path=https://raw.githubusercontent.com/alexcding/proxy-rules/refs/heads/main/'));
     assert.ok(rule.includes('requires-body=true, binary-body-mode=true'));
   });
-  assert.match(moduleText, /hostname = %APPEND% \*\.googlevideo\.com, youtubei\.googleapis\.com/);
+  assert.match(moduleText, /hostname = %APPEND% youtubei\.googleapis\.com$/m);
 });
 
 test('Surge substitutions yield named JSON values, preserving Loon defaults', () => {
   assert.deepEqual(JSON.parse(argument(rules[0])), {
     blockUpload: false, blockShorts: false, blockImmersive: false, captionLang: 'zh-Hans', debug: false,
   });
-  assert.deepEqual(JSON.parse(argument(rules[1])), { captionLang: 'zh-Hans' });
   for (const lang of ['zh-Hans', 'zh-Hant', 'ja', 'ko', 'en', 'off']) {
-    const result = JSON.parse(argument(rules[2], { captionLang: lang, blockUpload: 'true' }));
+    const result = JSON.parse(argument(rules[1], { captionLang: lang, blockUpload: 'true' }));
     assert.equal(result.captionLang, lang);
     assert.equal(result.blockUpload, true);
   }
@@ -76,7 +77,7 @@ test('Surge substitutions yield named JSON values, preserving Loon defaults', ()
 
 test('log_event strips encoding and removes hot-hash only without a cached key', () => {
   for (const cached of [false, true]) {
-    const { result, logs } = run(rules[2], {
+    const { result, logs } = run(rules[1], {
       url: 'https://youtubei.googleapis.com/youtubei/v1/log_event',
       headers: { 'Content-Encoding': 'gzip', 'X-YouTube-Hot-Hash-Data': 'hash', Accept: '*/*' },
       config: cached ? { youtube: { clientKey: 'key' } } : {},
@@ -86,36 +87,6 @@ test('log_event strips encoding and removes hot-hash only without a cached key',
     assert.equal(result.headers.Accept, '*/*');
     assert.deepEqual(logs, []);
   }
-});
-
-test('initplayback forwards the selected caption language with a matching protobuf key', () => {
-  const url = 'https://rr1.googlevideo.com/initplayback?foo=1&ack=1';
-  const { result, logs } = run(rules[1], {
-    url,
-    // OnesieRequest field 3 -> EncryptedInnertubeRequest field 5 -> key byte 1.
-    body: Uint8Array.from([26, 3, 42, 1, 1]),
-    config: { youtube: { clientKey: 'client-key', encryptKey: 'AQ==' } },
-    overrides: { captionLang: 'ja' },
-  });
-  const redirect = new URL(result.url);
-  assert.equal(redirect.origin, 'https://init-stream.maasea.workers.dev');
-  assert.equal(redirect.searchParams.get('target'), url);
-  assert.equal(redirect.searchParams.get('ck'), 'client-key');
-  assert.equal(redirect.searchParams.get('captionLang'), 'ja');
-  assert.deepEqual(logs, []);
-});
-
-test('initplayback clears stale video keys and returns an empty binary response', () => {
-  const { result, store, logs } = run(rules[1], {
-    url: 'https://rr1.googlevideo.com/initplayback?foo=1&ack=1',
-    body: Uint8Array.from([26, 3, 42, 1, 2]),
-    config: { youtube: { clientKey: 'key', encryptKey: 'AQ==' }, youtubeMusic: { clientKey: 'music' } },
-  });
-  assert.equal(result.response.status, 200);
-  assert.ok(result.response.body instanceof Uint8Array);
-  assert.equal(result.response.body.length, 0);
-  assert.deepEqual(JSON.parse(store.YouTubeConfig), { youtubeMusic: { clientKey: 'music' } });
-  assert.deepEqual(logs, []);
 });
 
 test('response script returns a binary settings rewrite through Surge APIs', () => {

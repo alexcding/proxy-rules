@@ -1,7 +1,7 @@
 # YouTube Surge module
 
-[`youtube.sgmodule`](../youtube.sgmodule) ports all three script rules and the
-hostname list from [efzb-wx/loon commit 91e0f4c2](https://github.com/efzb-wx/loon/commit/91e0f4c2b3ada0be94c93d1c5e040af7deee96bd).
+[`youtube.sgmodule`](../youtube.sgmodule) ports the script rules and hostname
+list from [efzb-wx/loon commit 91e0f4c2](https://github.com/efzb-wx/loon/commit/91e0f4c2b3ada0be94c93d1c5e040af7deee96bd).
 The [original Loon plugin](../vendor/efzb-wx/loon/YoutubeBlock/YouTube_remove_ads.lpx)
 is preserved unchanged. Both referenced JavaScript bundles are copied into this
 repository with their original author headers and bytes intact:
@@ -34,7 +34,6 @@ The port preserves the plugin's defaults: all three button-hiding switches are
 are `zh-Hans`, `zh-Hant`, `ja`, `ko`, `en`, and `off`. Use lowercase `true` or
 `false` for switches. Surge receives named JSON arguments with typed booleans;
 passing Loon's array would silently leave the scripts' internal defaults active.
-The initplayback rule receives only `captionLang`, as in the original plugin.
 The upstream bundles do not connect `debug` to their logger, so that retained
 parameter has no effect in this snapshot.
 
@@ -42,17 +41,17 @@ Both scripts use binary bodies. `max-size=-1` avoids Surge's default buffering
 limit skipping large protobuf responses, and each script has a 20-second timeout.
 MITM hostnames are appended to the existing profile.
 
-## Remaining service dependency
+## Omitted initplayback rule
 
-The copied request script redirects matching playback initialization requests to
-`https://init-stream.maasea.workers.dev/` when a matching cached key is available.
-That URL includes the cached client key, original target URL, and script options.
-This is upstream behavior. The Worker is a remote service; its implementation
-is not included in the linked plugin or its two bundles, and this port does not
-self-host it. Playback initialization still depends on that service.
+The upstream plugin also rewrites `*.googlevideo.com/initplayback` requests,
+redirecting them to the remote `https://init-stream.maasea.workers.dev/` service.
+This port omits that rule and the `*.googlevideo.com` MITM hostname, so playback
+initialization is not intercepted and does not depend on that service. The
+copied request script still contains the upstream initplayback code, unused.
 
 ## Validation
 
-Run `node --test tests/youtube.test.cjs` for source integrity, route parity,
-argument substitution, and execution with mocked Surge APIs. These checks do not
+Run `node --test tests/youtube.test.cjs` for source integrity, route parity
+(excluding initplayback), argument substitution, and execution with mocked Surge
+APIs. These checks do not
 replace testing video playback, Shorts, Music, PiP, or translation in the apps.
